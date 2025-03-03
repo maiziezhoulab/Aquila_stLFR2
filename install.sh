@@ -13,14 +13,13 @@ cd ..
 # rm source.tar.gz
 
 
-# wget http://xinzhouneuroscience.org/wp-content/uploads/2019/05/Uniqness_map.tar.gz
-# mv Uniqness_map.tar.gz Uniqness_map_hg38.tar.gz
-# tar -xvf Uniqness_map_hg38.tar.gz
-# rm Uniqness_map_hg38.tar.gz
+wget https://zenodo.org/records/7689958/files/Uniqness_map_hg38.tar.gz
+tar -xvf Uniqness_map_hg38.tar.gz
+rm Uniqness_map_hg38.tar.gz
 
-# wget http://xinzhouneuroscience.org/wp-content/uploads/2019/06/Uniqness_map_hg19.tar.gz 
-# tar -xvf Uniqness_map_hg19.tar.gz
-# rm Uniqness_map_hg19.tar.gz
+wget https://zenodo.org/records/7689958/files/Uniqness_map_hg19.tar.gz
+tar -xvf Uniqness_map_hg19.tar.gz
+rm Uniqness_map_hg19.tar.gz
 
 if ! [ -x "$(command -v samtools)" ];
 then
