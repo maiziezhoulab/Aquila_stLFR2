@@ -27,7 +27,7 @@ After running "./install.sh", a folder "source" would be download, it includes h
 Put the "Aquila_stLFR2/bin" in the ".bashrc" file, and source the ".bashrc" file <br />
 Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step2.py**"
 
-*We provide  <a href="https://github.com/maiziezhoulab/Aquila_stLFR/blob/master/example_data/run_example_data.md">a small chromosome (chr21) example dataset</a> to run the whole pipeline before you try it into the large dataset. 
+*We provide  <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/example_data/run_example_data.md">a small chromosome (chr21) example dataset</a> to run the whole pipeline before you try it into the large dataset. 
 
 
 ### Step 1: 
@@ -35,11 +35,11 @@ Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step
 Aquila_stLFR2/bin/Aquila_stLFR_step1.py --fastq_file S12878.fastq --bam_file S12878.bam --vcf_file S12878_freebayes.vcf --sample_name S12878 --out_dir Assembly_results_S12878 --uniq_map_dir Aquila_stLFR2/Uniqness_map
 ```
 #### *Required parameters
-**--fastq_file:** "S12878.fastq" is the stLFR fastq file (with BX:Z:barcode at the header, you can use Aquila_stLFR/bin/Aquila_stLFR_fastq_preprocess.py to generate the input fastq file, <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/src/How_to_get_bam_and_vcf.md">check here for the processing details</a>)
+**--fastq_file:** "S12878.fastq" is the stLFR fastq file (with BX:Z:barcode at the header, you can use Aquila_stLFR/bin/Aquila_stLFR_fastq_preprocess.py to generate the input fastq file, <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/src/How_to_get_bam_and_vcf.md">check here for the processing details</a>)
 
-**--bam_file:** "S12878.bam" is bam file generated from bwa-mem. How to get bam file, you can also check <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/src/How_to_get_bam_and_vcf.md">here</a>.
+**--bam_file:** "S12878.bam" is bam file generated from bwa-mem. How to get bam file, you can also check <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/src/How_to_get_bam_and_vcf.md">here</a>.
 
-**--vcf_file:** "S12878_freebayes.vcf" is VCF file generated from variant caller like "FreeBayes". How to get vcf file, you can also check <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/src/How_to_get_bam_and_vcf.md">here</a>. 
+**--vcf_file:** "S12878_freebayes.vcf" is VCF file generated from variant caller like "FreeBayes". How to get vcf file, you can also check <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/src/How_to_get_bam_and_vcf.md">here</a>. 
 
 **--sample_name:** "S12878" are the sample name you can define. 
 
@@ -149,7 +149,7 @@ Aquila_stLFR2/bin/Aquila_stLFR_clean.py --assembly_dir Assembly_results_S12878
 
 ## Assembly Based Variants Calling and Phasing:
 ##### For example, you can use `Assemlby_results_S12878` as input directory to generate a VCF file which includes SNPs, small Indels and SVs. 
-##### Please check <a href="https://github.com/maiziezhoulab/Aquila_stLFR/blob/master/Assembly_based_variants_call/README.md/">Assembly_based_variants_call_and_phasing</a> for details. 
+##### Please check <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/Assembly_based_variants_call/README.md/">Assembly_based_variants_call_and_phasing</a> for details. 
 
 ## Aquila assembly for other version of human referece: hg19
 ##### 1. Download hg19 reference from <a href="https://support.10xgenomics.com/genome-exome/software/downloads/latest">10x Genomics website</a>
