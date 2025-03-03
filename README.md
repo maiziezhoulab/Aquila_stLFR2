@@ -1,15 +1,9 @@
 # :milky_way: Aquila_stLFR2 :eagle: 
 
-```
-#Download the reference file (hg38)
-wget http://xinzhouneuroscience.org/wp-content/uploads/2019/05/source.tar.gz
-
-#Download hg38 "Uniqness_map"
-wget http://xinzhouneuroscience.org/wp-content/uploads/2019/05/Uniqness_map.tar.gz
-```
-## Dependencies for Github installation:
+# Dependencies for Github installation:
 Aquila_stLFR2 utilizes <a href="https://www.python.org/downloads/">Python3 (+ numpy, pysam, sortedcontainers, and scipy)</a>, <a href="http://samtools.sourceforge.net/">SAMtools</a>, and <a href="https://github.com/lh3/minimap2">minimap2</a>. To be able to execute the above programs by typing their name on the command line, the program executables must be in one of the directories listed in the PATH environment variable (".bashrc"). <br />
 Or you could just run "./install.sh" to check their availability and install them if not, but make sure you have installed "python3", "conda" and "wget" first. 
+
 
 # Install through Github:
 ```
@@ -28,13 +22,36 @@ Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step
 
 *We provide  <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/example_data/run_example_data.md">a small chromosome (chr21) example dataset</a> to run the whole pipeline before you try it into the large dataset. 
 
+### Step 0: 
 
-### Step 1: 
+This step will generate single chromosome fastq file.
+
 ```
-Aquila_stLFR2/bin/Aquila_stLFR_step1.py --fastq_file S12878.fastq --bam_file S12878.bam --vcf_file S12878_freebayes.vcf --sample_name S12878 --out_dir Assembly_results_S12878 --uniq_map_dir Aquila_stLFR2/Uniqness_map_hg19
+python3 Aquila_stLFR2/bin/BAM2FASTQ_By_Chromosome.py --bam_file <your_BAM_file> --fastq_file <your_WGS_FASTQ_file> --chromosome chr21 --num_threads 20 --out_dir chr21_fastq --prefix <sample_name>
 ```
 #### *Required parameters
-**--fastq_file:** "S12878.fastq" is the stLFR fastq file (with BX:Z:barcode at the header, you can use Aquila_stLFR/bin/Aquila_stLFR_fastq_preprocess.py to generate the input fastq file, <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/src/How_to_get_bam_and_vcf.md">check here for the processing details</a>)
+**--bam_file:** input BAM file
+
+**--fastq_file:** input whole genome fastq file. Note, it need to be the output fastq file of Aquila_stLFR_fastq_preprocess.py.
+
+**--chromosome:** which chromosome you want
+
+**--num_threads:** how many threads you want
+
+**--out_dir:** out folder for single chromosome fastq
+
+**--prefix:** output prefix
+
+
+### Step 1: 
+
+This step will generate phased reads in different phase block.
+
+```
+Aquila_stLFR2/bin/Aquila_stLFR_step1.py --fastq_file S12878_chr21.fastq --bam_file S12878.bam --vcf_file S12878_freebayes.vcf --sample_name S12878 --out_dir Assembly_results_S12878 --uniq_map_dir Aquila_stLFR2/Uniqness_map_hg19 --chr_number 21
+```
+#### *Required parameters
+**--fastq_file:** "S12878_chr21.fastq" is the output of **step0**
 
 **--bam_file:** "S12878.bam" is bam file generated from bwa-mem. How to get bam file, you can also check <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/src/How_to_get_bam_and_vcf.md">here</a>.
 
@@ -78,6 +95,9 @@ Coverage | Memory| Time for chr21 on a single node |
 
 
 ### Step 2: 
+
+This step will assembly reads in different phase block.
+
 ```
 Aquila_stLFR2/bin/Aquila_stLFR_step2.py --out_dir Assembly_results_S12878 --num_threads 30 --reference <your reference file>
 ```
@@ -100,6 +120,9 @@ Aquila_stLFR2/bin/Aquila_stLFR_step2.py --out_dir Assembly_results_S12878 --num_
 
 
 ### Step 3: 
+
+This step will generate SV callset based on phased contig.
+
 ```
 Aquila_stLFR2/bin/Aquila_stLFR_step3.py --out_dir Assembly_results_S12878/ --num_threads 30 --reference <your reference file>
 ```
