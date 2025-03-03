@@ -75,7 +75,7 @@ Coverage | Memory| Time for chr21 on a single node |
 
 ### Step 2: 
 ```
-Aquila_stLFR/bin/Aquila_stLFR_step2.py --out_dir Assembly_results_S12878 --num_threads 30 --reference Aquila_stLFR/source/ref.fa
+Aquila_stLFR2/bin/Aquila_stLFR_step2.py --out_dir Assembly_results_S12878 --num_threads 30 --reference Aquila_stLFR/source/ref.fa
 ```
 #### *Required parameters
 **--reference:** "Aquila_stLFR/source/ref.fa" is the reference fasta file you can download by "./install".
@@ -144,7 +144,7 @@ Aquila_stLFR outputs an overall contig file `Aquila_Contig_chr*.fasta` for each 
 ### Clean Data
 ##### If your hard drive storage is limited(Aquila_stLFR could generate a lot of intermediate files for local assembly), it is suggested to quily clean some data by running `Aquila_stLFR_clean.py`. Or you can keep them for some analysis (check the above output directory tree for details). 
 ```
-Aquila_stLFR/bin/Aquila_stLFR_clean.py --assembly_dir Assembly_results_S12878 
+Aquila_stLFR2/bin/Aquila_stLFR_clean.py --assembly_dir Assembly_results_S12878 
 ```
 
 ## Assembly Based Variants Calling and Phasing:
@@ -160,64 +160,6 @@ wget http://xinzhouneuroscience.org/wp-content/uploads/2019/06/Uniqness_map_hg19
 ##### If you want to run Aquila for other diploid species with high quality reference genomes, to generate `Uniqness_map` for Aquila, check the details of  <a href="https://bismap.hoffmanlab.org/">hoffmanMappability</a> to get the corresponding "k100.umap.bed.gz", then run `Aquila/bin/Get_uniqnessmap_for_Aquila.py` to get the final "Uniqness_map" folder to run Aquila.
 ##### Or you can use our "Aquila_uniqmap" to generate the `Uniqness_map` folder to run Aquila, check <a href="https://github.com/maiziex/Aquila/blob/master/src/How_to_get_uniqmap_folder.md">How_to_get_Umap</a> for details.
 
-# Hybrid assembly of 10x linked-reads and stLFR:
-
-### Step 1: 
-```
-Aquila_stLFR/bin/Aquila_step1_hybrid.py --bam_file_list 10x.bam,stLFR.bam --vcf_file_list S24385_10x_freebayes.vcf,S24385_stLFR_freebayes.vcf --sample_name_list S24385_10x,S24385_stLFR --out_dir Assembly_results_hybrid --uniq_map_dir Aquila_stLFR/Uniqness_map
-```
-#### *Required parameters
-**--bam_file:** "10x.bam" is bam file generated from barcode-awere aligner like "Lonranger align". "stLFR.bam" is bam file generated from "bwa-mem". Each bam file is seperately by comma (",").
-
-**--vcf_file:** "S24385_10x_freebayes.vcf" and "S24385_stLFR_freebayes.vcf" are VCF files generated from variant caller like "FreeBayes". Each VCF file is seperately by comma (",").
-
-**--sample_name:** S24385_10x,S24385_stLFR are the sample names you can define. Each sample name is seperately by comma (",").
-
-**--uniq_map_dir:** "Aquila_stLFR/Uniqness_map" is the uniqness file you can download by "./install.sh".
-
-#### *Optional parameters
-**--out_dir:** default = ./Asssembly_results 
-
-**--block_threshold:** default = 200000 (200kb)
- 
-**--block_len_use:** default = 100000 (100kb)
-
-**--num_threads:** default = 8. It's recommended not to change this setting unless large memory node could be used (2*memory capacity(it suggests for assembly below)), then try to use "--num_threads 12". 
-
-**--num_threads_for_samtools_sort:** default = 20. This setting is evoked for "samtools sort".
-
-**--chr_start --chr_end:** if you only want to assembly some chromosomes or only one chromosome. For example: use "--chr_start 1 --chr_end 5"  will assemble chromsomes 1,2,3,4,5. Use "--chr_start 2 --chr_end 2" will only assemlby chromosome 2. 
-(*Notes: Use 23 for "chrX") To use the above option "--chr_start, --chr_end", it is recommended (not required) to run the below command first to save more time for step1. 
-```
-python Aquila_stLFR/bin/Aquila_step0_sortbam_hybrid.py --bam_file_list ./S24385_Lysis_2/Longranger_align_bam/S24385_lysis_2/outs/possorted_bam.bam,./S24385_Lysis_2H/Longranger_align_bam/S24385_lysis_2H/outs/possorted_bam.bam --out_dir Assembly_results_merged --num_threads_for_samtools_sort 10 --sample_name_list S24385_lysis_2,S24385_lysis_2H 
-```
-
-#### Memory/Time Usage For Step 1
-##### Running Step 1 for chromosomes parallelly on multiple(23) nodes
-
-
-Coverage | Memory| Time for chr22 on a single node | 
---- | --- | --- | 
-90X(stLFR) + 90X (10x linked-reads)| 200GB | 11:39:50 |
-
-
-
-
-### Step 2: (The same as single library assembly)
-```
-Aquila_stLFR/bin/Aquila_stLFR_step2.py --out_dir Assembly_results_hybrid --num_threads 30 --reference Aquila_stLFR/source/ref.fa
-```
-#### *Required parameters
-**--reference:** "Aquila_stLFR/source/ref.fa" is the reference fasta file you can download by "./install".
-
-#### *Optional parameters
-**--out_dir:** default = ./Asssembly_results, make sure it's the same as "--out_dir" from step1 if you want to define your own output directory name.
-
-**--num_threads:** default = 20 
-
-**--block_len_use:** default = 100000 (100kb)
-
-**--chr_start --chr_end:** if you only want to assembly some chromosomes or only one chromosome. 
 
 ### Notes
 #### For stLFR assembly or hybrid assembly, stLFR reads with barcode "0_0_0" are removed to get perfect diploid assembly.  
