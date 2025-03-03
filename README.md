@@ -82,8 +82,11 @@ Coverage | Memory| Time for chr21 on a single node |
 Aquila_stLFR2/bin/Aquila_stLFR_step2.py --out_dir Assembly_results_S12878 --num_threads 30 --reference <your reference file>
 ```
 #### *Required parameters
+
 **--reference:** reference file.
+
 **--chr_number :** target chromosome. For example: using "--chr_number 1 "  will assemble chromosome 1. 
+
 **--read_type :** PE for paired-end reads, SE for single-end reads 
 
 #### *Optional parameters
@@ -101,8 +104,12 @@ Aquila_stLFR2/bin/Aquila_stLFR_step2.py --out_dir Assembly_results_S12878 --num_
 Aquila_stLFR2/bin/Aquila_stLFR_step3.py --out_dir Assembly_results_S12878/ --num_threads 30 --reference <your reference file>
 ```
 #### *Required parameters
+
 **--reference:** reference file.
+
 **--chr_number :** target chromosome. For example: using "--chr_number 1 "  will assemble chromosome 1. 
+
+#### *Optional parameters
 **--out_dir:** default = ./Asssembly_results, make sure it's the same as "--out_dir" from ***Step1*** and ***Step2*** if you want to define your own output directory name.
 
 
