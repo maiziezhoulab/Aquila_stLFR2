@@ -13,7 +13,7 @@ Or you could just run "./install.sh" to check their availability and install the
 
 # Install through Github:
 ```
-git clone https://github.com/maiziex/Aquila_stLFR2.git
+git clone https://github.com/maiziezhoulab/Aquila_stLFR2.git
 cd Aquila_stLFR2
 chmod +x install.sh
 ./install.sh
@@ -27,7 +27,7 @@ After running "./install.sh", a folder "source" would be download, it includes h
 Put the "Aquila_stLFR2/bin" in the ".bashrc" file, and source the ".bashrc" file <br />
 Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step2.py**"
 
-*We provide  <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/example_data/run_example_data.md">a small chromosome (chr21) example dataset</a> to run the whole pipeline before you try it into the large dataset. 
+*We provide  <a href="https://github.com/maiziezhoulab/Aquila_stLFR/blob/master/example_data/run_example_data.md">a small chromosome (chr21) example dataset</a> to run the whole pipeline before you try it into the large dataset. 
 
 
 ### Step 1: 
@@ -149,7 +149,7 @@ Aquila_stLFR2/bin/Aquila_stLFR_clean.py --assembly_dir Assembly_results_S12878
 
 ## Assembly Based Variants Calling and Phasing:
 ##### For example, you can use `Assemlby_results_S12878` as input directory to generate a VCF file which includes SNPs, small Indels and SVs. 
-##### Please check <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/Assembly_based_variants_call/README.md/">Assembly_based_variants_call_and_phasing</a> for details. 
+##### Please check <a href="https://github.com/maiziezhoulab/Aquila_stLFR/blob/master/Assembly_based_variants_call/README.md/">Assembly_based_variants_call_and_phasing</a> for details. 
 
 ## Aquila assembly for other version of human referece: hg19
 ##### 1. Download hg19 reference from <a href="https://support.10xgenomics.com/genome-exome/software/downloads/latest">10x Genomics website</a>
@@ -158,17 +158,17 @@ Aquila_stLFR2/bin/Aquila_stLFR_clean.py --assembly_dir Assembly_results_S12878
 wget http://xinzhouneuroscience.org/wp-content/uploads/2019/06/Uniqness_map_hg19.tar.gz 
 ```
 ##### If you want to run Aquila for other diploid species with high quality reference genomes, to generate `Uniqness_map` for Aquila, check the details of  <a href="https://bismap.hoffmanlab.org/">hoffmanMappability</a> to get the corresponding "k100.umap.bed.gz", then run `Aquila/bin/Get_uniqnessmap_for_Aquila.py` to get the final "Uniqness_map" folder to run Aquila.
-##### Or you can use our "Aquila_uniqmap" to generate the `Uniqness_map` folder to run Aquila, check <a href="https://github.com/maiziex/Aquila/blob/master/src/How_to_get_uniqmap_folder.md">How_to_get_Umap</a> for details.
+##### Or you can use our "Aquila_uniqmap" to generate the `Uniqness_map` folder to run Aquila, check <a href="https://github.com/maiziezhoulab/Aquila/blob/master/src/How_to_get_uniqmap_folder.md">How_to_get_Umap</a> for details.
 
 
 ### Notes
 #### For stLFR assembly, stLFR reads with barcode "0_0_0" are removed to get perfect diploid assembly.  
 
 
-#### Please also check <a href="https://github.com/maiziex/Aquila">Aquila</a> here 
+#### Please also check <a href="https://github.com/maiziezhoulab/Aquila">Aquila</a> here 
 
 
 ## Troubleshooting:
-##### Please submit issues on the github page for <a href="https://github.com/maiziex/Aquila_stLFR2/issues">Aquila_stLFR2</a>. 
+##### Please submit issues on the github page for <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/issues">Aquila_stLFR2</a>. 
 ##### Or contact with me through <a href="can.luo@vanderbilt.edu">can.luo@vanderbilt.edu</a>
 
