@@ -20,7 +20,7 @@ After running "./install.sh", two folders "Uniqness_map_hg19" and "Uniqness_map_
 Put the "Aquila_stLFR2/bin" in the ".bashrc" file, and source the ".bashrc" file <br />
 Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step2.py**"
 
-*We provide  <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/example_data/run_example_data.md">a small chromosome (chr21) example dataset</a> to run the whole pipeline before you try it into the large dataset. 
+
 
 ### Step 0: 
 
