@@ -162,15 +162,13 @@ wget http://xinzhouneuroscience.org/wp-content/uploads/2019/06/Uniqness_map_hg19
 
 
 ### Notes
-#### For stLFR assembly or hybrid assembly, stLFR reads with barcode "0_0_0" are removed to get perfect diploid assembly.  
+#### For stLFR assembly, stLFR reads with barcode "0_0_0" are removed to get perfect diploid assembly.  
 
 
 #### Please also check <a href="https://github.com/maiziex/Aquila">Aquila</a> here 
 
-## Cite Aquila_stLFR:
-#### Aquila_stLFR: diploid genome assembly based structural variant calling package for stLFR linked-reads. Y.H. Liu, G. L. Grubbs, L. Zhang, X. Fang, D. L. Dill, A. Sidow, X. Zhou. Bioinformatics Advances (2021), Volume 1, Issue 1, 2021, vbab007, https://doi.org/10.1093/bioadv/vbab007
 
 ## Troubleshooting:
-##### Please submit issues on the github page for <a href="https://github.com/maiziex/Aquila_stLFR/issues">Aquila_stLFR</a>. 
-##### Or contact with me through <a href="maizie.zhou@vanderbilt.edu">maizie.zhou@vanderbilt.edu</a>
+##### Please submit issues on the github page for <a href="https://github.com/maiziex/Aquila_stLFR2/issues">Aquila_stLFR2</a>. 
+##### Or contact with me through <a href="can.luo@vanderbilt.edu">can.luo@vanderbilt.edu</a>
 
