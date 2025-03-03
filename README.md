@@ -21,7 +21,7 @@ chmod +x install.sh
 
 
 ## source folder:
-After running "./install.sh", a folder "source" would be download, it includes human GRCh38 reference fasta file, or you could also just download it by yourself from the corresponding official websites. 
+After running "./install.sh", two folders "Uniqness_map_hg19" and "Uniqness_map_hg38" would be downloaded, they include the uniqness map information for the human hG19/GRCh38 reference fasta file. 
 
 ## Running The Code:
 Put the "Aquila_stLFR2/bin" in the ".bashrc" file, and source the ".bashrc" file <br />
@@ -32,7 +32,7 @@ Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step
 
 ### Step 1: 
 ```
-Aquila_stLFR2/bin/Aquila_stLFR_step1.py --fastq_file S12878.fastq --bam_file S12878.bam --vcf_file S12878_freebayes.vcf --sample_name S12878 --out_dir Assembly_results_S12878 --uniq_map_dir Aquila_stLFR2/Uniqness_map
+Aquila_stLFR2/bin/Aquila_stLFR_step1.py --fastq_file S12878.fastq --bam_file S12878.bam --vcf_file S12878_freebayes.vcf --sample_name S12878 --out_dir Assembly_results_S12878 --uniq_map_dir Aquila_stLFR2/Uniqness_map_hg19
 ```
 #### *Required parameters
 **--fastq_file:** "S12878.fastq" is the stLFR fastq file (with BX:Z:barcode at the header, you can use Aquila_stLFR/bin/Aquila_stLFR_fastq_preprocess.py to generate the input fastq file, <a href="https://github.com/maiziezhoulab/Aquila_stLFR2/blob/master/src/How_to_get_bam_and_vcf.md">check here for the processing details</a>)
@@ -43,7 +43,9 @@ Aquila_stLFR2/bin/Aquila_stLFR_step1.py --fastq_file S12878.fastq --bam_file S12
 
 **--sample_name:** "S12878" are the sample name you can define. 
 
-**--uniq_map_dir:** "Aquila_stLFR/Uniqness_map" is the uniqness file you can download by "./install.sh".
+**--uniq_map_dir:** "Aquila_stLFR2/Uniqness_map_hg19" is the uniqness file you can download by "./install.sh".
+
+Note: use Uniqness_map_hg19 for BAM based on HG19 reference, Uniqness_map_hg38 for BAM based on HG38 reference
 
 #### *Optional parameters
 **--out_dir:** default = ./Asssembly_results. You can define your own folder, for example "Assembly_results_S12878". 
