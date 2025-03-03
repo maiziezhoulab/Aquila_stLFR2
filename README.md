@@ -1,23 +1,5 @@
-# :milky_way: Aquila_stLFR :eagle: 
-[![BioConda Install](https://img.shields.io/conda/dn/bioconda/aquila_stlfr.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/aquila_stlfr)
-# Install through Bioconda (The updated version 1.2.11):
-Version <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/src/version_history_tracking.md">history tracking</a> 
-```
-conda install aquila_stlfr
-```
-(Please ensure <a href="https://bioconda.github.io/user/install.html#set-up-channels">channels</a> are properly setup for bioconda before installing) 
+# :milky_way: Aquila_stLFR2 :eagle: 
 
-```
-Aquila_stLFR_step1 --help
-Aquila_stLFR_step2 --help
-Aquila_stLFR_clean --help
-Aquila_step1_hybrid --help
-Aquila_stLFR_assembly_based_variants_call --help
-Aquila_stLFR_phasing_all_variants --help
-Aquila_step0_sortbam_hybrid --help
-Aquila_stLFR_fastq_preprocess --help
-# You can also check the below corresponding scripts for details
-```
 ```
 #Download the reference file (hg38)
 wget http://xinzhouneuroscience.org/wp-content/uploads/2019/05/source.tar.gz
@@ -26,13 +8,13 @@ wget http://xinzhouneuroscience.org/wp-content/uploads/2019/05/source.tar.gz
 wget http://xinzhouneuroscience.org/wp-content/uploads/2019/05/Uniqness_map.tar.gz
 ```
 ## Dependencies for Github installation:
-Aquila_stLFR utilizes <a href="https://www.python.org/downloads/">Python3 (+ numpy, pysam, sortedcontainers, and scipy)</a>, <a href="http://samtools.sourceforge.net/">SAMtools</a>, and <a href="https://github.com/lh3/minimap2">minimap2</a>. To be able to execute the above programs by typing their name on the command line, the program executables must be in one of the directories listed in the PATH environment variable (".bashrc"). <br />
+Aquila_stLFR2 utilizes <a href="https://www.python.org/downloads/">Python3 (+ numpy, pysam, sortedcontainers, and scipy)</a>, <a href="http://samtools.sourceforge.net/">SAMtools</a>, and <a href="https://github.com/lh3/minimap2">minimap2</a>. To be able to execute the above programs by typing their name on the command line, the program executables must be in one of the directories listed in the PATH environment variable (".bashrc"). <br />
 Or you could just run "./install.sh" to check their availability and install them if not, but make sure you have installed "python3", "conda" and "wget" first. 
 
 # Install through Github:
 ```
-git clone https://github.com/maiziex/Aquila_stLFR.git
-cd Aquila_stLFR
+git clone https://github.com/maiziex/Aquila_stLFR2.git
+cd Aquila_stLFR2
 chmod +x install.sh
 ./install.sh
 ```
@@ -42,7 +24,7 @@ chmod +x install.sh
 After running "./install.sh", a folder "source" would be download, it includes human GRCh38 reference fasta file, or you could also just download it by yourself from the corresponding official websites. 
 
 ## Running The Code:
-Put the "Aquila_stLFR/bin" in the ".bashrc" file, and source the ".bashrc" file <br />
+Put the "Aquila_stLFR2/bin" in the ".bashrc" file, and source the ".bashrc" file <br />
 Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step2.py**"
 
 *We provide  <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/example_data/run_example_data.md">a small chromosome (chr21) example dataset</a> to run the whole pipeline before you try it into the large dataset. 
@@ -50,7 +32,7 @@ Or just use the fullpath of "**Aquila_stLFR_step1.py**" and "**Aquila_stLFR_step
 
 ### Step 1: 
 ```
-Aquila_stLFR/bin/Aquila_stLFR_step1.py --fastq_file S12878.fastq --bam_file S12878.bam --vcf_file S12878_freebayes.vcf --sample_name S12878 --out_dir Assembly_results_S12878 --uniq_map_dir Aquila_stLFR/Uniqness_map
+Aquila_stLFR2/bin/Aquila_stLFR_step1.py --fastq_file S12878.fastq --bam_file S12878.bam --vcf_file S12878_freebayes.vcf --sample_name S12878 --out_dir Assembly_results_S12878 --uniq_map_dir Aquila_stLFR2/Uniqness_map
 ```
 #### *Required parameters
 **--fastq_file:** "S12878.fastq" is the stLFR fastq file (with BX:Z:barcode at the header, you can use Aquila_stLFR/bin/Aquila_stLFR_fastq_preprocess.py to generate the input fastq file, <a href="https://github.com/maiziex/Aquila_stLFR/blob/master/src/How_to_get_bam_and_vcf.md">check here for the processing details</a>)
