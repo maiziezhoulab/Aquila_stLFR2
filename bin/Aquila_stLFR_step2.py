@@ -11,10 +11,11 @@ script_path = os.path.dirname(os.path.abspath( __file__ ))
 code_path = script_path + "/" 
 __author__ = "Xin Zhou@Stanford"
 parser = ArgumentParser(description="Author: xzhou15@cs.stanford.edu\n",usage='use "python3 %(prog)s --help" for more information')
-parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
-parser.add_argument('--chr_end','-end',type=int,help="chromosome end by, default = 23", default=23)
-parser.add_argument('--out_dir','-o', help="Required parameter; Directory to store assembly results",required=True)
-parser.add_argument('--reference','-ref', help="Required parameter; reference fasta file, run ./install to download it",required=True)
+parser.add_argument('--chr_number','-chr',type=int,help="chromosome number, eg. 1,2,3...22")
+# parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
+# parser.add_argument('--chr_end','-end',type=int,help="chromosome end by, default = 23", default=23)
+parser.add_argument('--out_dir','-o', help="Directory to store assembly results, default = ./Assembly_results",default="./Asssembly_results")
+parser.add_argument('--reference','-ref', help="Required parameter; reference fasta file",required=True)
 parser.add_argument('--num_threads','-t',type=int,help="number of threads, default = 30, this correponds to number of small files get assembled simulateoulsy", default=30)
 parser.add_argument('--num_threads_spades','-t_spades',type=int,help="number of threads for spades, default = 5", default=5)
 parser.add_argument('--block_len_use','-bl',type=int,help="phase block len threshold, default = 100000",default=100000)
@@ -71,8 +72,8 @@ def main():
     if len(sys.argv) == 1:
         Popen("python " + "Aquila_step2.py -h",shell=True).wait()
     else:
-        chr_start = args.chr_start
-        chr_end = args.chr_end
+        chr_start = args.chr_number
+        chr_end = args.chr_number
         ref_file = args.reference
         cut_threshold = args.block_len_use
         num_threads = int(args.num_threads)

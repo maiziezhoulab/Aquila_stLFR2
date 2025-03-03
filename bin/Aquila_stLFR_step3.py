@@ -7,15 +7,16 @@ from multiprocessing import Pool,cpu_count,active_children,Manager
 import time
 import sys
 parser = ArgumentParser(description="Run depth all:")
-parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
-parser.add_argument('--chr_end','-end',type=int,help="chromosome end by, default = 23", default=23)
+parser.add_argument('--chr_number','-chr',type=int,help="chromosome number, eg. 1,2,3...22")
+# parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
+# parser.add_argument('--chr_end','-end',type=int,help="chromosome end by, default = 23", default=23)
 parser.add_argument('--var_size','-v',type=int,help="variant size, cut off size for indel and SV, default = 1", default=1)
 parser.add_argument('--all_regions_flag','-all', type=int,help="1 is for variants calling in all regions (including some regions with haploid assemblies), default = 0 for diploid regions", default=0)
 parser.add_argument('--clean_flag','-clean', type=int,help="1 for cleaning all intermediate files, default = 0: keep all intermediate files", default=0)
 parser.add_argument('--num_of_threads','-t',type=int,help="number of threads, default = 1", default=1)
-parser.add_argument('--assembly_dir','-i_dir', help="Required parameter, folder to store Aquila assembly results at Aquila assembly steps",required=True)
-parser.add_argument('--out_dir','-o_dir', help="Directory to store outputs, default = ./Aquila_Variant_Results", default='Aquila_Variant_Results/')
-parser.add_argument('--ref_file','-r', help="Required parameter, reference fasta file, run ./install.sh to dowload GRCh38 human reference fasta",required=True)
+# parser.add_argument('--assembly_dir','-i_dir', help="Required parameter, folder to store Aquila assembly results at Aquila assembly steps",required=True)
+parser.add_argument('--out_dir','-o_dir', help="Directory to store outputs, default = ./Asssembly_results/", default='./Asssembly_results/')
+parser.add_argument('--reference','-r', help="Required parameter, reference fasta file",required=True)
 
 
 args = parser.parse_args()
@@ -260,17 +261,17 @@ def main():
     if len(sys.argv) == 1:
         Popen("python3 " + "Aquila_assembly_based_variants_call.py -h",shell=True).wait()
     else:
-        out_dir = args.out_dir + "/"
+        out_dir = args.out_dir + "/Variant_call/"
         if os.path.exists(out_dir):
             print("using existing output folder: " + out_dir)
         else:
             os.makedirs(out_dir)
-        chr_start = args.chr_start
-        chr_end = args.chr_end
+        chr_start = args.chr_number
+        chr_end = args.chr_number
         v_size = args.var_size
         num_of_threads = args.num_of_threads
-        in_dir = args.assembly_dir + "/" + "Assembly_Contigs_files/"  
-        ref_file = args.ref_file
+        in_dir = args.out_dir + "/" + "Assembly_Contigs_files/"  
+        ref_file = args.reference
         Split_haplotype(chr_start,chr_end,in_dir)
         assembly_based_variants_call_paf(chr_start,chr_end,ref_file,in_dir,out_dir)
         assembly_based_variants_call_sort(chr_start,chr_end,out_dir)

@@ -12,8 +12,9 @@ parser = ArgumentParser(description="Author: xzhou15@cs.stanford.edu\n",usage='u
 parser.add_argument('--fastq_file','-f',help="Required parameter; stLFR FASTQ file with paired reads",required=True)
 parser.add_argument('--bam_file','-bam',help="Required parameter; BAM file, called by bwa mem",required=True)
 parser.add_argument('--vcf_file','-v',help="Required parameter; VCF file, called by FreeBayes",required=True)
-parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
-parser.add_argument('--chr_end','-end',type=int,help="chromosome end by,default = 23", default=22)
+parser.add_argument('--chr_number','-chr',type=int,help="chromosome number, eg. 1,2,3...22")
+# parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
+# parser.add_argument('--chr_end','-end',type=int,help="chromosome end by,default = 23", default=22)
 parser.add_argument('--sample_name','-name',help="Required parameter; sample name you can define, for example, S12878",required=True)
 parser.add_argument('--out_dir','-o', help="Directory to store assembly results, default = ./Assembly_results",default="./Asssembly_results")
 parser.add_argument('--uniq_map_dir','-uniq_dir', help="Required Parameter; Directory for 100-mer uniqness, run ./install to download it",required=True)
@@ -85,7 +86,7 @@ def Get_fastq_files_total(fastq_file,chr_start,chr_end,num_threads,Raw_fastqs_di
     Popen(use_cmd,shell=True).wait()
 
 
-def Extract_reads_for_small_chunks(chr_start,chr_end,h5_dir,phase_blocks_cut_highconf_dir,Local_Assembly_dir,Raw_fastqs_dir,block_len_use,sample_name,num_threads,read_type):
+def Extract_reads_for_small_chunks_old(chr_start,chr_end,h5_dir,phase_blocks_cut_highconf_dir,Local_Assembly_dir,Raw_fastqs_dir,block_len_use,sample_name,num_threads,read_type):
     use_cmd = "python3 " + code_path + "Run_extract_reads_for_smallchunks_all_lessmem.py" + \
         " --phase_cut_folder " + phase_blocks_cut_highconf_dir + " --chr_start " + str(chr_start) +\
               " --chr_end " + str(chr_end) + " --out_dir " + Local_Assembly_dir + " --h5_folder " + h5_dir + \
@@ -99,7 +100,16 @@ def Extract_reads_for_small_chunks(chr_start,chr_end,h5_dir,phase_blocks_cut_hig
     Popen(use_cmd,shell=True).wait()
 
 
-
+def Extract_reads_for_small_chunks(input_dir,fastq_file_one_chr ,chr_num, num_threads,read_type):
+    use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v5.py" + \
+        " --indir " + input_dir + " --chr_fastq " + fastq_file_one_chr + \
+        " --chr_num " + str(chr_num) + " --n_thread " +  str(num_threads) +\
+        " --read_type "+read_type
+    print(use_cmd)
+    logger.info("******************************************************\n\n")
+    logger.info("               Split fastq by phase block             \n\n")
+    logger.info("******************************************************\n\n")
+    Popen(use_cmd,shell=True).wait()
 
 def main():
     if len(sys.argv) == 1:
@@ -108,8 +118,9 @@ def main():
         fastq_file = args.fastq_file    # add
         bam_file = args.bam_file
         vcf_file = args.vcf_file
-        chr_start = args.chr_start
-        chr_end = args.chr_end
+        
+        chr_start = args.chr_number
+        chr_end = args.chr_number
         block_len_use = args.block_len_use
         block_threshold = args.block_threshold
         uniq_map_dir = args.uniq_map_dir + "/"
@@ -135,6 +146,6 @@ def main():
         #################Get_fastq_files_total(bam_file,chr_start,chr_end,num_threads_for_bwa_mem,Raw_fastqs_dir,Sorted_bam_dir)
         #Get_fastq_files_total(fastq_file,chr_start,chr_end,6,Raw_fastqs_dir,h5_dir,sample_name)
         #Extract_reads_for_small_chunks(chr_start,chr_end,h5_dir,phase_blocks_cut_highconf_dir,Local_Assembly_dir,Raw_fastqs_dir,block_len_use,sample_name,12,read_type)
-    
+        Extract_reads_for_small_chunks(args.out_dir,fastq_file, args.chr_numumber, num_threads,read_type)
 if __name__ == "__main__":
     main()
