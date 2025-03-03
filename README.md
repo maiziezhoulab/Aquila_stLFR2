@@ -20,7 +20,6 @@ chmod +x install.sh
 ```
 
 
-## source folder:
 After running "./install.sh", two folders "Uniqness_map_hg19" and "Uniqness_map_hg38" would be downloaded, they include the uniqness map information for the human hG19/GRCh38 reference fasta file. 
 
 ## Running The Code:
