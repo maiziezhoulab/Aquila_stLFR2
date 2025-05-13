@@ -100,10 +100,10 @@ def Extract_reads_for_small_chunks_old(chr_start,chr_end,h5_dir,phase_blocks_cut
     Popen(use_cmd,shell=True).wait()
 
 
-def Extract_reads_for_small_chunks(input_dir,fastq_file_one_chr ,chr_num, num_threads,read_type):
+def Extract_reads_for_small_chunks(input_dir,fastq_file_one_chr ,chr_num, num_threads,read_type, sample_name):
     use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v5.py" + \
         " --indir " + input_dir + " --chr_fastq " + fastq_file_one_chr + \
-        " --chr_num " + str(chr_num) + " --n_thread " +  str(num_threads) +\
+        " --sample_name " + sample_name + " --chr_num " + str(chr_num) + " --n_thread " +  str(num_threads) +\
         " --read_type "+read_type
     print(use_cmd)
     logger.info("******************************************************\n\n")
@@ -137,15 +137,17 @@ def main():
         read_type = args.read_type
 
         assert read_type in ['SE','PE']
-        
-        Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sample_name,read_type)
+
+        # ---------------uncomment start
+        Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sample_name,read_type) 
         Get_highconf_profile(bam_file,chr_start,chr_end,HighConf_file_dir,uniq_map_dir)
         Haplotying_fragments(chr_start,chr_end,phased_file_dir,h5_dir,sample_name)
-        Cut_phase_blocks(chr_start,chr_end,block_threshold,block_len_use,phase_blocks_cut_highconf_dir,phased_file_dir,HighConf_file_dir)
+        Cut_phase_blocks(chr_start,chr_end,block_threshold,block_len_use,phase_blocks_cut_highconf_dir,phased_file_dir,HighConf_file_dir) 
+        #--------------- uncomment end
         
         #################Get_fastq_files_total(bam_file,chr_start,chr_end,num_threads_for_bwa_mem,Raw_fastqs_dir,Sorted_bam_dir)
         #Get_fastq_files_total(fastq_file,chr_start,chr_end,6,Raw_fastqs_dir,h5_dir,sample_name)
         #Extract_reads_for_small_chunks(chr_start,chr_end,h5_dir,phase_blocks_cut_highconf_dir,Local_Assembly_dir,Raw_fastqs_dir,block_len_use,sample_name,12,read_type)
-        Extract_reads_for_small_chunks(args.out_dir,fastq_file, args.chr_numumber, num_threads,read_type)
+        Extract_reads_for_small_chunks(args.out_dir,fastq_file, args.chr_number, num_threads,read_type, sample_name)
 if __name__ == "__main__":
     main()

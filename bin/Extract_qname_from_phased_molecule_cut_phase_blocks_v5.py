@@ -8,6 +8,7 @@ parser.add_argument('--chr_fastq','-fq')
 parser.add_argument('--read_type','-rt', choices = ['PE','SE'])
 parser.add_argument('--chr_num','-chr', type = int )
 parser.add_argument('--n_thread','-t', type = int, default = 22 )
+parser.add_argument('--sample_name','-name',help="Required parameter; sample name you can define, for example, S12878",required=True)
 parser.add_argument('--delete_temp_file','-d', action='store_true')
 args = parser.parse_args()
 indir = args.indir
@@ -16,6 +17,7 @@ read_type = args.read_type
 n_thread = args.n_thread
 chr_fastq = args.chr_fastq
 chr_num = args.chr_num
+sample_name = args.sample_name
 
 import pdb
 #pdb.set_trace()
@@ -230,8 +232,8 @@ def Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,mole_q
 # chr_num=22
 phased_h5_file=indir + f"/phase_blocks_cut_highconf/chr{chr_num}.phased_final_cut_by_100000"    
 PS_flag_dict_cut_file= indir + f"/phase_blocks_cut_highconf/chr{chr_num}.phased_final_cut_by_100000_phase_blocks.p"
-mole_qname_dict_file= indir +  f"/H5_for_molecules/NA24385_chr{chr_num}_qname.p"
-qname_pos_dict_file= indir + f"/H5_for_molecules/NA24385_chr{chr_num}_qname_pos.p"
+mole_qname_dict_file= indir +  f"/H5_for_molecules/{sample_name}_chr{chr_num}_qname.p"
+qname_pos_dict_file= indir + f"/H5_for_molecules/{sample_name}_chr{chr_num}_qname_pos.p"
 output_dir = indir + f'/Local_Assembly_by_chunks/chr{chr_num}_files_cutPBHC/'
 # chr_fastq="/data/maiziezhou_lab/Datasets/stLFR_data/NA24385_giab/fastq_by_chr/chr22/NA24385_stlfr_giab_chr22.fastq"
 # read_type = "PE"
