@@ -2,7 +2,7 @@ import pickle
 from sortedcontainers import SortedDict
 from collections import defaultdict
 import numpy as np
-
+import os
 
 def read_phase_block_file(pickle_file,h5_file,output_file,metric_phase_percent,metric_corr_percent,hetero_var_dict):
     phase_block = pickle.load(open(pickle_file,"rb"))
@@ -157,7 +157,8 @@ def Refine_phase_block_for_output(uniq_flag,convert_dict,phase_block,h5_file,het
     phase_block_eval = []
     # use the uniq_flag for overlap variants
     # for the final phase blocks, refine some overlap variants when maximize the haplotype likelihood of all molecules 
-    chr_num_raw = h5_file.split("/chr")[1].split("_")[0]
+    # chr_num_raw = h5_file.split("/chr")[1].split("_")[0]
+    chr_num_raw = os.path.basename(h5_file).split("chr")[1].split("_")[0]
     if chr_num_raw == "23":
         chr_num = "X"
     else:
@@ -460,5 +461,4 @@ def Impute_nonphase_variant(nonphase_dict,phase_file_1,phase_file_2,output_file_
     
     write_phase_block_into_h5(phase_block_final, phase_file_1,output_file_1)
     write_phase_block_into_h5(phase_block_final, phase_file_2,output_file_2)
-
 
