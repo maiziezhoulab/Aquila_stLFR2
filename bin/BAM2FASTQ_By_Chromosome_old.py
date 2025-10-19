@@ -78,7 +78,7 @@ def count_stats_for_block(args):
 		total_reads += 1
 
 		# Count reads where the mate is unmapped
-		if (read.mate_is_unmapped) or (read.cigarstring is None):
+		if read.mate_is_unmapped:
 			unmapped_mate += 1
 			oer_reads.append(read.qname)
 			continue

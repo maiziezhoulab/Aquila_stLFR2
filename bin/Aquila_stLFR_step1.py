@@ -8,11 +8,12 @@ import sys
 script_path = os.path.dirname(os.path.abspath( __file__ ))
 code_path = script_path + "/" 
 __author__ = "Xin Zhou@Stanford"
-parser = ArgumentParser(description="Author: xzhou15@cs.stanford.edu\n",usage='use "python3 %(prog)s --help" for more information')
+parser = ArgumentParser(description="Author: can.luo@vanderbilt.edu\n",usage='use "python3 %(prog)s --help" for more information')
 parser.add_argument('--fastq_file','-f',help="Required parameter; stLFR FASTQ file with paired reads",required=True)
 parser.add_argument('--bam_file','-bam',help="Required parameter; BAM file, called by bwa mem",required=True)
 parser.add_argument('--vcf_file','-v',help="Required parameter; VCF file, called by FreeBayes",required=True)
 parser.add_argument('--chr_number','-chr',type=int,help="chromosome number, eg. 1,2,3...22")
+parser.add_argument('--max_mem','-mem', help = "GB", default= 100, type = int)
 # parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
 # parser.add_argument('--chr_end','-end',type=int,help="chromosome end by,default = 23", default=22)
 parser.add_argument('--sample_name','-name',help="Required parameter; sample name you can define, for example, S12878",required=True)
@@ -100,11 +101,11 @@ def Extract_reads_for_small_chunks_old(chr_start,chr_end,h5_dir,phase_blocks_cut
     Popen(use_cmd,shell=True).wait()
 
 
-def Extract_reads_for_small_chunks(input_dir,fastq_file_one_chr ,chr_num, num_threads,read_type, sample_name):
-    use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v5.py" + \
+def Extract_reads_for_small_chunks(input_dir,fastq_file_one_chr ,chr_num, num_threads,max_mem, sample_name):
+    use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v6.py" + \
         " --indir " + input_dir + " --chr_fastq " + fastq_file_one_chr + \
         " --sample_name " + sample_name + " --chr_num " + str(chr_num) + " --n_thread " +  str(num_threads) +\
-        " --read_type "+read_type
+        " --max_mem "+str(max_mem)
     print(use_cmd)
     logger.info("******************************************************\n\n")
     logger.info("               Split fastq by phase block             \n\n")
@@ -121,6 +122,7 @@ def main():
         
         chr_start = args.chr_number
         chr_end = args.chr_number
+        max_mem = args.max_mem
         block_len_use = args.block_len_use
         block_threshold = args.block_threshold
         uniq_map_dir = args.uniq_map_dir + "/"
@@ -139,15 +141,12 @@ def main():
         assert read_type in ['SE','PE']
 
         # ---------------uncomment start
-        Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sample_name,read_type) 
-        Get_highconf_profile(bam_file,chr_start,chr_end,HighConf_file_dir,uniq_map_dir)
+        # Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sample_name,read_type) 
+        # Get_highconf_profile(bam_file,chr_start,chr_end,HighConf_file_dir,uniq_map_dir)
         Haplotying_fragments(chr_start,chr_end,phased_file_dir,h5_dir,sample_name)
         Cut_phase_blocks(chr_start,chr_end,block_threshold,block_len_use,phase_blocks_cut_highconf_dir,phased_file_dir,HighConf_file_dir) 
-        #--------------- uncomment end
+        # #--------------- uncomment end
+        Extract_reads_for_small_chunks(args.out_dir,fastq_file, args.chr_number, num_threads,max_mem, sample_name)
         
-        #################Get_fastq_files_total(bam_file,chr_start,chr_end,num_threads_for_bwa_mem,Raw_fastqs_dir,Sorted_bam_dir)
-        #Get_fastq_files_total(fastq_file,chr_start,chr_end,6,Raw_fastqs_dir,h5_dir,sample_name)
-        #Extract_reads_for_small_chunks(chr_start,chr_end,h5_dir,phase_blocks_cut_highconf_dir,Local_Assembly_dir,Raw_fastqs_dir,block_len_use,sample_name,12,read_type)
-        Extract_reads_for_small_chunks(args.out_dir,fastq_file, args.chr_number, num_threads,read_type, sample_name)
 if __name__ == "__main__":
     main()
