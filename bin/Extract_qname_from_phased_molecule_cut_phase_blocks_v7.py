@@ -1,25 +1,4 @@
-import argparse
-from argparse import ArgumentParser
-parser = ArgumentParser(description="",
-	usage='use "python3 %(prog)s --help" for more information',
-	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--indir','-i')
-parser.add_argument('--chr_fastq','-fq')
-# parser.add_argument('--read_type','-rt', choices = ['PE','SE'])
-parser.add_argument('--max_mem','-mem', help = "GB", default= 100, type = int)
-parser.add_argument('--chr_num','-chr', type = int )
-parser.add_argument('--n_thread','-t', type = int, default = 22 )
-parser.add_argument('--sample_name','-name',help="Required parameter; sample name you can define, for example, S12878",required=True)
-parser.add_argument('--delete_temp_file','-d', action='store_true')
-args = parser.parse_args()
-indir = args.indir
-# read_type = args.read_type
-max_mem = args.max_mem
-# output_path = args.output_path
-n_thread = args.n_thread
-chr_fastq = args.chr_fastq
-chr_num = args.chr_num
-sample_name = args.sample_name
+
 
 import pdb
 #pdb.set_trace()
@@ -72,8 +51,19 @@ def check_qname_in_PS(block_info,qname_pos_list):
     return flag_in 
 
 
-def Extract_qname(phased_dict_mole_num,mole_qname_dict,qname_pos_dict,barcoded_fastq_file,chr_num,output_dir,):
-    # assert read_type in ['SE','PE']
+def Extract_qname_hp_dict(phased_h5_file,PS_flag_dict_cut_file,chr_num,mole_qname_dict_file,output_dir,logger):
+
+    process = psutil.Process(os.getpid())
+
+    mem0=process.memory_info().rss / 1024**2
+    phased_dict_mole_num = Extract_mole_num_from_phased_mole(phased_h5_file,PS_flag_dict_cut_file,chr_num)
+    mem1=process.memory_info().rss / 1024**2
+    logger.info(f"Estimated phased_dict_mole_num memory usage: {(mem1-mem0):.2f} MB")
+
+    mem0 = process.memory_info().rss / 1024**2
+    mole_qname_dict = pickle.load(open(mole_qname_dict_file,"rb"))
+    mem1 = process.memory_info().rss / 1024**2
+    logger.info(f"Estimated mole_qname_dict memory usage: {(mem1-mem0):.2f} MB")
 
     phased_dict_qname_2 = {}
     curr = 0
@@ -81,9 +71,9 @@ def Extract_qname(phased_dict_mole_num,mole_qname_dict,qname_pos_dict,barcoded_f
     for key, mole_num_list in tqdm(phased_dict_mole_num.items(), desc = " extract qname - hp dict"):
         curr += 1
         for mole_num in mole_num_list:
-            qname_list = mole_qname_dict[mole_num]
-            for qname in qname_list:
-                flag_in = check_qname_in_PS(key,qname_pos_dict[qname])
+            qname_dict = mole_qname_dict[mole_num]
+            for qname in qname_dict:
+                flag_in = check_qname_in_PS(key,qname_dict[qname])
                 if flag_in == 1:
                     phased_dict_qname_2[qname] = key
     if not os.path.exists(output_dir):
@@ -140,37 +130,16 @@ def split_one_fq(barcoded_fastq_file,phased_dict_qname_2_path, out_dir, start_by
     '''
 
     f = open(barcoded_fastq_file,"r")
+    
     if start_byte!=0:
-        f.seek(start_byte)
-        # f.readline()
-        found_plus = 0
-        byte_list = []
-        lines = []
-        for i in range(5):
-            byte_position = f.tell()   # record current byte offset
-            byte_list.append(byte_position)
-            line = f.readline()
-            lines.append(line)
-            if line == '+\n':
-                plus_i = i
-                found_plus=1
-                # break 
-        if found_plus == 0:
-            print(f"could not find '+\\n' line after searching 5 rows starting from {start_byte}, please check your fastq file")
-            exit()
-        if plus_i in [0,4]:
-            start_i = 2
-        elif plus_i == 3:
-            start_i = 1
-        elif plus_i == 2:
-            if lines[0][0]=='@':
-                start_i = 0 
-            else:
-                start_i = 4 
+        f.seek(start_byte-1)
+        test = f.readline()
+        if test == '\n':
+            # the start_byte is the starting of a new line
+            actual_start_byte = start_byte 
         else:
-            start_i = 3
-        
-        actual_start_byte = byte_list[start_i]
+            # the start_byte is in the middle of a line
+            actual_start_byte = f.tell()
     else:
         actual_start_byte = start_byte
 
@@ -181,19 +150,20 @@ def split_one_fq(barcoded_fastq_file,phased_dict_qname_2_path, out_dir, start_by
     count = 0
     # f.seek(real_start_byte) 
     while True:
-        byte_position = f.tell()   # record current byte offset
+        # byte_position = f.tell()   # record current byte offset
         line = f.readline()
         count+=1
         if not line:
             break
         data = line.rsplit()  # decode if needed
-        qname_curr = data[0][1:]
+        qname_curr = data[0]
+        poss = tuple(int(x) for x in data[1:])
         if qname_curr in phased_dict_qname_2:
             _PS_HP = phased_dict_qname_2[qname_curr]
-            dc[_PS_HP].append(byte_position)
-        for i in range(3):
-            f.readline()
-            count += 1
+            dc[_PS_HP].append(poss)
+        # for i in range(3):
+        #     f.readline()
+        #     count += 1
         if (count!=1) & (count % 1000000 == 0):
             print(f"processed {barcoded_fastq_file} {count} lines...")
         cur_byte = f.tell()
@@ -283,12 +253,12 @@ def merge_result(out_dir, chunks, out_file):
         dc_cur = pickle.load(open(file,'rb'))
         for key, val in dc_cur.items():
             if key in dc:
-                prev_val = dc[key]
-                try:
-                    assert prev_val[-1] < val[0]
-                except:
-                    print(f"found error in file {file} with previous blocks; PS_tag {key} previous end {prev_val[-1]} >= current start {val[0]}")
-                    exit()
+                # prev_val = dc[key]
+                # try:
+                #     assert prev_val[-1] < val[0]
+                # except:
+                #     print(f"found error in file {file} with previous blocks; PS_tag {key} previous end {prev_val[-1]} >= current start {val[0]}")
+                #     exit()
                 dc[key].extend(val)
             else:
                 dc[key] = val 
@@ -329,7 +299,7 @@ def clean_folder(output_dir):
 
 
 
-def Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,mole_qname_dict_file,qname_pos_dict_file,chr_fastq,max_mem, n_thread):
+def Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,mole_qname_dict_file,chr_fastq,max_mem, n_thread):
     import logging
     ## set logger
     logging.basicConfig(
@@ -338,49 +308,44 @@ def Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,mole_q
     datefmt='%Y-%m-%d %H:%M:%S')
     logger = logging.getLogger(" ")
 
-    process = psutil.Process(os.getpid())
-    logger.info("0")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    phased_dict_mole_num = Extract_mole_num_from_phased_mole(phased_h5_file,PS_flag_dict_cut_file,chr_num)
-    logger.info("1")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    mole_qname_dict = pickle.load(open(mole_qname_dict_file,"rb"))
-    logger.info("2")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    qname_pos_dict = pickle.load(open(qname_pos_dict_file,"rb"))
-    logger.info("3")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    Extract_qname(phased_dict_mole_num,mole_qname_dict,qname_pos_dict,chr_fastq,chr_num,output_dir,)
-    logger.info("4")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
     
-
-    
-    logger.info(f"Before cleanup: {process.memory_info().rss / 1024**2:.2f} MB")
-
-    del phased_dict_mole_num, mole_qname_dict, qname_pos_dict
-    gc.collect()
-
-    logger.info(f"After cleanup: {process.memory_info().rss / 1024**2:.2f} MB")
-
+    Extract_qname_hp_dict(phased_h5_file,PS_flag_dict_cut_file,chr_num,mole_qname_dict_file,output_dir,logger)
     split_all_fq( chr_fastq,  output_dir, n_thread, max_mem)
     clean_folder(output_dir)
 
 
 
 
+if __name__ == "__main__":
+    import argparse
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description="",
+        usage='use "python3 %(prog)s --help" for more information',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--indir','-i')
+    parser.add_argument('--chr_fastq','-fq')
+    # parser.add_argument('--read_type','-rt', choices = ['PE','SE'])
+    parser.add_argument('--max_mem','-mem', help = "GB", default= 100, type = int)
+    parser.add_argument('--chr_num','-chr', type = int )
+    parser.add_argument('--n_thread','-t', type = int, default = 22 )
+    parser.add_argument('--sample_name','-name',help="Required parameter; sample name you can define, for example, S12878",required=True)
+    parser.add_argument('--delete_temp_file','-d', action='store_true')
+    args = parser.parse_args()
+    indir = args.indir
+    # read_type = args.read_type
+    max_mem = args.max_mem
+    # output_path = args.output_path
+    n_thread = args.n_thread
+    chr_fastq = args.chr_fastq
+    chr_num = args.chr_num
+    sample_name = args.sample_name
+
+    phased_h5_file=indir + f"/phase_blocks_cut_highconf/chr{chr_num}.phased_final_cut_by_100000"    
+    PS_flag_dict_cut_file= indir + f"/phase_blocks_cut_highconf/chr{chr_num}.phased_final_cut_by_100000_phase_blocks.p"
+    mole_qname_dict_file= indir +  f"/H5_for_molecules/{sample_name}_chr{chr_num}_qname.p"
+    output_dir = indir + f'/Local_Assembly_by_chunks/chr{chr_num}_files_cutPBHC/'
 
 
-# chr_num=22
-phased_h5_file=indir + f"/phase_blocks_cut_highconf/chr{chr_num}.phased_final_cut_by_100000"    
-PS_flag_dict_cut_file= indir + f"/phase_blocks_cut_highconf/chr{chr_num}.phased_final_cut_by_100000_phase_blocks.p"
-mole_qname_dict_file= indir +  f"/H5_for_molecules/{sample_name}_chr{chr_num}_qname.p"
-qname_pos_dict_file= indir + f"/H5_for_molecules/{sample_name}_chr{chr_num}_qname_pos.p"
-output_dir = indir + f'/Local_Assembly_by_chunks/chr{chr_num}_files_cutPBHC/'
-# chr_fastq="/data/maiziezhou_lab/Datasets/stLFR_data/NA24385_giab/fastq_by_chr/chr22/NA24385_stlfr_giab_chr22.fastq"
-# read_type = "PE"
-# n_thread = 10
 
-
-Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,
-              mole_qname_dict_file,qname_pos_dict_file,chr_fastq,max_mem, n_thread)
+    Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,
+                mole_qname_dict_file,chr_fastq,max_mem, n_thread)

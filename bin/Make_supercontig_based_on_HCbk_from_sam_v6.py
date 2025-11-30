@@ -5,7 +5,7 @@ from collections import defaultdict
 from argparse import ArgumentParser
 import os
 import sys
-
+import pysam  
 
 def Check_contig_in_HCbk_dict(HCbk_dict,PS_flag_1,PS_flag_2):
     break_flag = 0
@@ -23,7 +23,7 @@ def Check_contig_in_HCbk_dict(HCbk_dict,PS_flag_1,PS_flag_2):
         return (0,0)
 
 
-def Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_dict,use_chr_num):
+def Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_file,use_chr_num):
     merge_dict = defaultdict(lambda: defaultdict(list))
     merge_len = defaultdict(list)
     merge_contig_num = defaultdict(int)
@@ -65,6 +65,13 @@ def Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_dict,use_
     supercontig_dict = defaultdict(list)
     remove_contig_dict = defaultdict(int)
     use_for_supercontig_dict = defaultdict(int)
+
+        
+
+    # Use:  
+    fasta = pysam.FastaFile(ref_fasta_file)  
+    chr_name = f"chr{use_chr_num}"  # or just str(chr_num) depending on your FASTA format 
+    
     ### For every big phase block, starting merging
     for key, contig_info_dict in merge_dict.items():
         max_contig_num = sorted(contig_info_dict.keys())[-1]
@@ -72,7 +79,9 @@ def Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_dict,use_
         HP_flag = key[2]
         HCbk_list = HCbk_dict[(key[0],key[1])]
         for HC_bk in HCbk_list[1:-1]:
-            HC_bk_string = ref_fasta_dict[HC_bk:(HC_bk+20)]
+            # HC_bk_string = ref_fasta_dict[HC_bk:(HC_bk+20)]
+            HC_bk_string = fasta.fetch(chr_name, HC_bk, HC_bk+20)  
+            
             idx_all = []
             contig_merge = []
             for contig_num,one_contig in contig_info_dict.items():
@@ -157,6 +166,7 @@ def Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_dict,use_
                 count_supercontig += 1
 
     print("finished~")
+    fasta.close()
     return (supercontig_dict,use_for_supercontig_dict,remove_contig_dict)
 
 
@@ -204,14 +214,14 @@ def Finalize_contig_fasta_file(contig_fasta_file,supercontig_dict,use_for_superc
     print("done")
 
 
-def Contig_start(chr_num,cut_threshold,ref_dir,out_dir,phase_cut_folder,xin):
+def Contig_start(chr_num,cut_threshold,ref_fasta_file,out_dir,phase_cut_folder,xin):
     HCbk_file = phase_cut_folder + "chr" + str(chr_num) +  ".phased_final_cut_by_" + str(cut_threshold) + "_HC_breakpoint_2.p"
     contig_fasta_file = out_dir + "Aquila_cutPBHC_minicontig_chr" + str(chr_num) + ".fasta"
     contig_sam_file = out_dir + "Aquila_cutPBHC_minicontig_chr" + str(chr_num) + ".sam"
-    ref_fasta_file = ref_dir + "ref_seq_chr" + str(chr_num) + ".p"
-    ref_fasta_dict = pickle.load(open(ref_fasta_file,"rb"))
+    # ref_fasta_file = ref_dir + "ref_seq_chr" + str(chr_num) + ".p"
+    # ref_fasta_dict = pickle.load(open(ref_fasta_file,"rb"))
     output_file = out_dir + "Aquila_Contig_chr" + str(chr_num) + ".fasta"
 
-    supercontig_dict,use_for_supercontig_dict,remove_contig_dict = Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_dict,"chr" + str(chr_num))
+    supercontig_dict,use_for_supercontig_dict,remove_contig_dict = Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_file,"chr" + str(chr_num))
     Finalize_contig_fasta_file(contig_fasta_file,supercontig_dict,use_for_supercontig_dict,remove_contig_dict,output_file)
 

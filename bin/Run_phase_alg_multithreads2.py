@@ -24,14 +24,15 @@ parser.add_argument('--support_threshold','-t2',type=int,help="support threshold
 parser.add_argument('--sample_name','-s',help="sample name")
 parser.add_argument('--out_dir','-o_dir', help="Directory to store outputs")
 parser.add_argument('--h5_dir','-h_dir', help="Directory to store h5 file")
+parser.add_argument('--num_threads','-t', type = int)
 
 args = parser.parse_args()
 
 
-def Run_phasing_all(chr_start,chr_end,overlap_threshold,support_threshold,output_dir,h5_dir,sample_name):
+def Run_phasing_all(chr_start,chr_end,overlap_threshold,support_threshold,output_dir,h5_dir,sample_name, num_threads):
     pool = Pool(chr_end - chr_start + 1)
     for chr_num in range(chr_start,chr_end+1):
-        pool.apply_async(Phase_start,(output_dir,h5_dir,sample_name,chr_num,chr_num,overlap_threshold,support_threshold,"xin"))
+        pool.apply_async(Phase_start,(output_dir,h5_dir,sample_name,chr_num,chr_num,overlap_threshold,support_threshold,num_threads,"xin"))
     pool.close()
     while len(active_children()) > 1:
         time.sleep(0.5)
@@ -53,4 +54,5 @@ if __name__ == "__main__":
     chr_start = args.chr_start
     chr_end = args.chr_end
     sample_name = args.sample_name
-    Run_phasing_all(chr_start,chr_end,overlap_threshold,support_threshold,output_dir,h5_dir,sample_name)
+    num_threads = args.num_threads
+    Run_phasing_all(chr_start,chr_end,overlap_threshold,support_threshold,output_dir,h5_dir,sample_name, num_threads)

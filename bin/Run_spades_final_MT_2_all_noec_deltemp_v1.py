@@ -11,13 +11,10 @@ import multiprocessing
 import pickle
 import time
 from datetime import timedelta
-import pysam
 
 def format_time(seconds):
     """Return human-readable time (min or hr)."""
-    if seconds < 60:
-        return f"{seconds :.1f} seconds"
-    elif seconds < 3600:
+    if seconds < 3600:
         return f"{seconds / 60:.1f} min"
     else:
         return f"{seconds / 3600:.1f} hr"
@@ -26,8 +23,6 @@ def format_time(seconds):
 script_path = os.path.dirname(os.path.abspath( __file__ ))
 code_path = script_path + "/" 
 parser = ArgumentParser(description="run local assembly by spades:")
-parser.add_argument('--bam_file','-bam',help="Required parameter; BAM file, called by bwa mem",required=True)
-parser.add_argument('--sample_fastq','-fq', help="wgs fastq")
 parser.add_argument('--num_threads','-nt', help="number of threads",default=30)
 parser.add_argument('--num_threads_spades','-nt_spades', help="number of threads for spades",default=5)
 parser.add_argument('--out_dir','-o', help="out dir")
@@ -40,95 +35,21 @@ args = parser.parse_args()
 num_threads_spades = int(args.num_threads_spades)
 
 #new func
-# def extract_read_by_idx_PE(f, out_file, read_idxs):
-#     fw = open(out_file, 'w')
-#     for idx in read_idxs[::2]:
-#         f.seek(idx)
-#         temp_read = list()
-#         for _ in range(8):
-#             line = f.readline()
-#             fw.write(line)
-#             temp_read.append(line)
-#         r1_name = temp_read[0].rstrip("\n").split()[0]
-#         r2_name = temp_read[4].rstrip("\n").split()[0]
-#         assert r1_name == r2_name, "read names not match!"
-#     fw.close()
-#     return 
-
-def reverse_complement(sequence):
-    """
-    Returns the reverse complement of a DNA sequence.
-    
-    Parameters:
-        sequence (str): The input DNA sequence (uppercase or lowercase).
-        
-    Returns:
-        str: The reverse complement of the DNA sequence.
-    """
-    complement = str.maketrans("ACGTacgt", "TGCAtgca")
-    return sequence.translate(complement)[::-1]
-
-def get_seq_from_bam(bam, idx, ):
-    bam.seek(idx)
-    read = next(bam)
-    qname = read.qname
-    # if qname!= exp_qname:
-    #     print(f"{qname} and exp qname {exp_qname} don't match at {idx}")
-    #     exit()
-    if read.is_reverse:
-        seq = reverse_complement(read.seq)
-        qual = read.qual[::-1]
-    else:
-        seq = read.seq 
-        qual = read.qual
-    return qname,seq,qual
-
-def extract_read_by_idx_PE(f, bamfile, out_file, read_idxs, error_file):
-    bam = pysam.AlignmentFile(bamfile, "rb")
+def extract_read_by_idx_PE(f, out_file, read_idxs):
     fw = open(out_file, 'w')
-    filename = os.path.basename(out_file).split('_')[0]
-    for poss in read_idxs:
-        if len(poss)==2:
-            idx1, idx2 = poss 
-            try:
-                qname1, seq1, qual1 = get_seq_from_bam(bam, idx1)
-                qname2, seq2, qual2 = get_seq_from_bam(bam, idx2)
-                if qname1 == qname2 :
-
-                    fw.write("@"+qname1+'\n')
-                    fw.write(seq1+"\n")
-                    fw.write("+\n")
-                    fw.write(qual1+"\n")
-                    fw.write("@"+qname2+'\n')
-                    fw.write(seq2+"\n")
-                    fw.write("+\n")
-                    fw.write(qual2+"\n")
-                else:
-                    error = f"{filename}_{idx1}_{qname1}_{idx2}_{qname2}\n"
-                    cmd = f"echo {error} >> {error_file}"
-                    os.system(cmd)
-            except:
-                error = f"{filename}_{idx1}_{idx2}\n"
-                cmd = f"echo {error} >> {error_file}"
-                os.system(cmd)
-        else:
-            idx = poss[0]
-            f.seek(idx)
-            temp_read = list()
-            for _ in range(8):
-                line = f.readline()
-                fw.write(line)
-                temp_read.append(line)
-            try:
-                r1_name = temp_read[0].rstrip("\n").split()[0]
-                r2_name = temp_read[4].rstrip("\n").split()[0]
-            except:
-                print('meow',idx,temp_read[0], temp_read[1])
-                exit()
-            assert r1_name == r2_name, "read names not match!"
+    for idx in read_idxs[::2]:
+        f.seek(idx)
+        temp_read = list()
+        for _ in range(8):
+            line = f.readline()
+            fw.write(line)
+            temp_read.append(line)
+        r1_name = temp_read[0].rstrip("\n").split()[0]
+        r2_name = temp_read[4].rstrip("\n").split()[0]
+        assert r1_name == r2_name, "read names not match!"
     fw.close()
     return 
-    
+
 def extract_read_by_idx_SE(f, out_file, read_idxs):
     fw = open(out_file, 'w')
     for idx in read_idxs:
@@ -140,26 +61,18 @@ def extract_read_by_idx_SE(f, out_file, read_idxs):
     return 
 
 #new func
-def extract_reads_from_sample_fastq(bamfile,sample_fastq,one_file_fastq, read_idxs,error_file, fq_time_log, read_type="PE"):
-    # start_time = time.time()
+def extract_reads_from_sample_fastq(sample_fastq,one_file_fastq, read_idxs,read_type="PE"):
     with open(sample_fastq,"r") as f:
         if read_type == "PE":
-            extract_read_by_idx_PE(f, bamfile, one_file_fastq, read_idxs, error_file)
+            extract_read_by_idx_PE(f, one_file_fastq, read_idxs)
         else:
             extract_read_by_idx_SE(f, one_file_fastq, read_idxs)
-    # end_time = time.time()
-    # elapsed = format_time(end_time - start_time)
-    # cmd = f"echo {elapsed} >> {fq_time_log}"
-    # os.system(cmd)
     return
 
 
 
 
-def use_spades(bamfile,sample_fastq,one_file_fastq,read_idxs, error_file,fq_time_log,log_file, out_dir, read_type):
-    start_time = time.time()
-    extract_reads_from_sample_fastq(bamfile,sample_fastq, one_file_fastq, read_idxs, error_file,fq_time_log, read_type)
-    end_time1 = time.time()
+def use_spades(one_file_fastq,log_file, out_dir, read_type):
     if read_type == 'PE':
         rt_flag = '--12'
     else:
@@ -171,19 +84,12 @@ def use_spades(bamfile,sample_fastq,one_file_fastq,read_idxs, error_file,fq_time
         use_cmd = code_path + "SPAdes-3.13.0-Linux/bin/" + "spades.py -t " + str(num_threads_spades) + " --only-assembler %s "%rt_flag + one_file_fastq + " -o " + out_dir 
     except:
         use_cmd = "spades.py -t " + str(num_threads_spades) + " --only-assembler %s "%rt_flag + one_file_fastq + " -o " + out_dir 
-    with open('command.log','a') as f:
-        f.write(use_cmd)
+
     Popen(use_cmd,shell=True).wait()
-    end_time2 = time.time()
     # lock = threading.Lock()
     # with lock:
     #     with open(log_file,'a') as fw:
     #         fw.write(os.path.basename(one_file_fastq)+'\n')
-    elapsed1 = format_time(end_time1 - start_time)
-    elapsed2 = format_time(end_time2 - end_time1)
-    elapsed3 = format_time(end_time2 - start_time)
-    cmd = f"echo {elapsed1} {elapsed2} {elapsed3} >> {fq_time_log}"
-    os.system(cmd)
 
     use_cmd = f"echo {os.path.basename(one_file_fastq)} >> {log_file}"
     print(use_cmd)
@@ -215,7 +121,7 @@ def del_file(file_dir):
 
 # TODO: here the read pickle file and sample fastq file were hard coded according to CAN's test files
 # need to further modify them to be more general. ALSO, this is only for chr1 test, do not use this script for other chromosomes directly
-def run_spades_all(bamfile,sample_fastq, chr_start,chr_end,output_dir,num_of_threads,minicontig_dir,read_type,sample):
+def run_spades_all(chr_start,chr_end,output_dir,num_of_threads,minicontig_dir,read_type,sample):
 
     if not os.path.exists(minicontig_dir):
         os.system("mkdir -p " + minicontig_dir)
@@ -228,10 +134,9 @@ def run_spades_all(bamfile,sample_fastq, chr_start,chr_end,output_dir,num_of_thr
     # chr_end=1
     ##################################################
     #num_of_threads = multiprocessing.cpu_count() - 10
-    # parent_dir = os.path.dirname(os.path.normpath(output_dir))
-    error_file = f"{output_dir}/error_log"
+    parent_dir = os.path.dirname(os.path.normpath(output_dir))
     for chr_num in range(chr_start, chr_end+1):
-        # sample_fastq = f"{parent_dir}/chr{chr_num}_fastq/{sample}_chr{chr_num}.fq"
+        sample_fastq = f"{parent_dir}/chr{chr_num}_fastq/{sample}_chr{chr_num}.fq"
         in_dir = output_dir + "chr" + str(chr_num) + "_files_cutPBHC/"
         log_file = in_dir+"/assmebly.log"
         if os.path.exists(log_file):
@@ -274,33 +179,18 @@ def run_spades_all(bamfile,sample_fastq, chr_start,chr_end,output_dir,num_of_thr
         [del_file(asm) for asm in prev_asm]
         # exit()
         contig_num = 1
-        fq_time_log = in_dir +"/fq_time.log"
-        with open(fq_time_log,'w') as f_fq_t:
-            f_fq_t.write("extract_fq spades total\n")
         with Pool(num_of_threads) as pool:
             for (s, e, hp), read_idxs in read_idx_dict.items():
                 one_file_fastq = in_dir + "/fastq_by_" + str(s) + "_" + str(e) + "_" + hp + ".fastq"
-                # extract_reads_from_sample_fastq(bamfile,sample_fastq, one_file_fastq, read_idxs, error_file,fq_time_log, read_type)
+                extract_reads_from_sample_fastq(sample_fastq, one_file_fastq, read_idxs, read_type)
                 # with open(one_file_fastq, "w") as fw:
                 #     fw.write(records)
         ### end of hard coded part
                 out_dir = one_file_fastq[:-6] + "_spades_assembly"
                 # spades_contig_file = out_dir + "/" + "contigs.fasta"
 
-                with open(in_dir + "/cpu_count",'w') as f_cpu:
-                    n = int(os.getenv("SLURM_CPUS_ON_NODE", 1))
-                    
-                    f_cpu.write(f"num of cpu: {os.cpu_count()}\n")
-                    f_cpu.write(f"Allowed CPUs seen by Slurm: {n}\n")
-
                 if len(spades_batch) < num_of_threads:
-                    # spades_batch.append((one_file_fastq, log_file, out_dir, read_type))
-                    #=============
-                    #     WARNING !!!
-                    #   If you update below line, remember to update the cmplt_dirs and cmplt_fastqs
-                    #    otherwise you will delete important files which you don't want!!!!
-                    #=============
-                    spades_batch.append((bamfile,sample_fastq,one_file_fastq,read_idxs, error_file,fq_time_log,log_file, out_dir, read_type))
+                    spades_batch.append((one_file_fastq, log_file, out_dir, read_type))
                 else:
                     if async_results is not None: # wait for previous batch to finish
                         async_results.wait()
@@ -327,18 +217,13 @@ def run_spades_all(bamfile,sample_fastq, chr_start,chr_end,output_dir,num_of_thr
                         cmplt_fastqs = list() # reset completed fastq list just in case
                     
                     batch_input = spades_batch
-                    cmplt_dirs = [x[-2] for x in spades_batch] # store batch output dirs
-                    cmplt_fastqs = [x[2] for x in spades_batch] # store batch fastq files
+                    cmplt_dirs = [x[2] for x in spades_batch] # store batch output dirs
+                    cmplt_fastqs = [x[0] for x in spades_batch] # store batch fastq files
 
                     async_results = pool.starmap_async(use_spades, batch_input) # submit current batch
-                    # spades_batch = [(one_file_fastq, log_file, out_dir, read_type)] # start new batch
-                    #=============
-                    #     WARNING !!!
-                    #   If you update below line, remember to update the cmplt_dirs and cmplt_fastqs
-                    #    otherwise you will delete important files which you don't want!!!!
-                    #=============
-                    
-                    spades_batch = [(bamfile,sample_fastq,one_file_fastq,read_idxs, error_file,fq_time_log,log_file, out_dir, read_type)]
+
+                    spades_batch = [(one_file_fastq, log_file, out_dir, read_type)] # start new batch
+
             # process remaining jobs
             if spades_batch:
                 if async_results is not None:
@@ -352,8 +237,8 @@ def run_spades_all(bamfile,sample_fastq, chr_start,chr_end,output_dir,num_of_thr
                     cmplt_fastqs = list() # reset completed fastq list just in case
 
                 batch_input = spades_batch
-                cmplt_dirs = [x[-2] for x in spades_batch] # store batch output dirs
-                cmplt_fastqs = [x[2] for x in spades_batch] # store batch fastq files
+                cmplt_dirs = [x[2] for x in spades_batch] # store batch output dirs
+                cmplt_fastqs = [x[0] for x in spades_batch] # store batch fastq files
                 async_results = pool.starmap_async(use_spades, batch_input) # submit current batch
                 async_results.wait()
                 # final collection of results
@@ -443,8 +328,6 @@ def run_spades_all(bamfile,sample_fastq, chr_start,chr_end,output_dir,num_of_thr
 
 
 if __name__ == "__main__":
-    bamfile = args.bam_file
-    sample_fastq = args.sample_fastq
     output_dir = args.out_dir
     minicontig_dir = args.minicontig_dir
     chr_start = args.chr_start
@@ -452,5 +335,5 @@ if __name__ == "__main__":
     num_of_threads = int(args.num_threads)
     read_type = args.read_type
     sample = args.sample
-    run_spades_all(bamfile, sample_fastq, chr_start,chr_end,output_dir,num_of_threads,minicontig_dir,read_type,sample)
+    run_spades_all(chr_start,chr_end,output_dir,num_of_threads,minicontig_dir,read_type,sample)
 

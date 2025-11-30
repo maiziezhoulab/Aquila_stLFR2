@@ -32,15 +32,14 @@ def concatenate_contigs(contig_file,fw,contig_num,contigs_all,hp_flag,PS_flag,PS
     return (fw,contig_num,contigs_all)
 
 
-def concatenate_all(input_dir,output_filename, contig_num):
+def concatenate_all(input_dir,output_filename):
     count = 0
     count_2 = 0
     count_3 = 0
-    # contig_num = 1
+    contig_num = 1
     contigs_all = []
 
-    # fw_contigs_all = open(output_filename,"w")
-    fw_contigs_all = open(output_filename,"a") # move to append mode
+    fw_contigs_all = open(output_filename,"w")
     for one_file in glob.glob(input_dir + "fastq_by_*_spades_assembly"):
         #print(one_file)
         count += 1
@@ -57,35 +56,33 @@ def concatenate_all(input_dir,output_filename, contig_num):
         else:
             count_3 += 1
 
-    # print(count,count_2,count_3)
-    # print(np.mean(contigs_all))
-    # print(np.median(contigs_all))
-    # print(np.max(contigs_all))
-    # print(np.min(contigs_all))
+    print(count,count_2,count_3)
+    print(np.mean(contigs_all))
+    print(np.median(contigs_all))
+    print(np.max(contigs_all))
+    print(np.min(contigs_all))
 
-    # contigs_all_sorted = sorted(contigs_all,reverse=True)
-    # total_contigs_len = sum(contigs_all)
-    # total_contigs_len_half = float(total_contigs_len)/2
-    # cumu_len = 0
-    # for one_len in contigs_all_sorted:
-    #     cumu_len += one_len
-    #     if cumu_len >= total_contigs_len_half:
-    #         n50_len = one_len
-    #         print("------results:-------")
-    #         print("n50 minicontigs: " + str(n50_len))
-    #         break
+    contigs_all_sorted = sorted(contigs_all,reverse=True)
+    total_contigs_len = sum(contigs_all)
+    total_contigs_len_half = float(total_contigs_len)/2
+    cumu_len = 0
+    for one_len in contigs_all_sorted:
+        cumu_len += one_len
+        if cumu_len >= total_contigs_len_half:
+            n50_len = one_len
+            print("------results:-------")
+            print("n50 minicontigs: " + str(n50_len))
+            break
 
     fw_contigs_all.close()    
-    return contig_num
 
 
-def Concatenate_start(input_dir,output_dir,output_file, contig_num): 
+def Concatenate_start(input_dir,output_dir,output_file,xin): 
     if os.path.exists(output_dir):
         print("using existing output folder: " + output_dir)
     else:
         os.makedirs(output_dir)
 
     output_filename = output_dir + output_file
-    contig_num = concatenate_all(input_dir,output_filename, contig_num)
-    return contig_num
+    concatenate_all(input_dir,output_filename)
 

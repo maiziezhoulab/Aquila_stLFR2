@@ -283,10 +283,14 @@ def check_hp(mole_variant):
 
 def parse_mole(mole, read_type, chrom, bx,mole_id):
     dc = defaultdict(list)
-    dc_qname_pos = defaultdict(list)
+    dc_qname_pos = {}
+    read_list = []
     for read in mole:
         dc[read[0]].append(read[1])
-        dc_qname_pos[read[0]].append(read[2])
+        dc_qname_pos[read[0]] = read[2]
+    for qname,pos in dc_qname_pos.items():
+        read_list.append(f"{qname}_{pos}") #qname, which_read, pos
+    mole_info_line = f"{mole_id}\t"+'\t'.join(read_list)+'\n'
     if read_type == 'PE':
         valid_pair = 0 
         for k,v in dc.items():
@@ -307,25 +311,26 @@ def parse_mole(mole, read_type, chrom, bx,mole_id):
     else:
         line = ""
         # dc_read = defaultdict(list)/
-    return line, dc, dc_qname_pos
+    return line, mole_info_line
         
-def process_mole_dict(mole_dict, read_type, chrom, start_id, fw):
+def process_mole_dict(mole_dict, read_type, chrom, start_id, fw, f_info):
     mole_id = start_id
-    mole_qname_dict = {}
-    qname_pos = defaultdict(list)
+    # mole_qname_dict = {}
+    # qname_pos = defaultdict(list)
     for bx, mole_list in mole_dict.items():
         for mole in mole_list:
-            line, dc_read, dc_qname_pos = parse_mole(mole, read_type, chrom, bx, mole_id)
+            line, mole_info_line = parse_mole(mole, read_type, chrom, bx, mole_id)
             if line!='':
-                mole_qname_dict[mole_id] = dc_read
+                # mole_qname_dict[mole_id] = 
 
-                for qname, poss in dc_qname_pos.items():
-                    qname_pos[qname].extend(poss)
+                # for qname, poss in dc_qname_pos.items():
+                #     qname_pos[qname].extend(poss)
                 # print(line)
                 mole_id+=1 
                 fw.write(line)
+                f_info.write(mole_info_line)
 
-    return mole_id, mole_qname_dict, qname_pos
+    return mole_id
 
 def process_one_pkl(pkl_list, i,  chrom, maxd):
 
@@ -416,10 +421,10 @@ def write_h5(pkl_list , out_dir, sample, chrom,  read_type, maxd= 50_000):
     start_id = 0
 
     h5_file = f"{out_dir}/{sample}_{chrom}.h5"
-    mole_qname_file = f"{out_dir}/{sample}_{chrom}_qname.p"
-    qname_pos_file = f"{out_dir}/{sample}_{chrom}_qname_pos.p"
+    mole_qname_file = f"{out_dir}/{sample}_{chrom}_mole_qname_pos.h5"
 
     fw = open(h5_file,'w')
+    f_info = open(mole_qname_file, 'w')
 
     cur_dict = pickle.load(open(pkl_list[0], 'rb'))
 
@@ -451,32 +456,19 @@ def write_h5(pkl_list , out_dir, sample, chrom,  read_type, maxd= 50_000):
                     cnt+=1
             print(cnt)
         
-        end_id, mole_qname_dict_batch, qname_pos_batch = process_mole_dict(d1, read_type, chrom, start_id, fw)
-        if i == 0:
-            mole_qname_dict = mole_qname_dict_batch
-            qname_pos = qname_pos_batch 
-        else:
-            mole_qname_dict.update(mole_qname_dict_batch)
-            # qname_pos.update(qname_pos_batch)
-            qname_pos = safe_update(qname_pos, qname_pos_batch)
+        end_id = process_mole_dict(d1, read_type, chrom, start_id, fw, f_info)
+
         start_id = end_id+1
 
         cur_dict = d2 
 
-    # with open(pkl_list[-1]+".new",'wb') as f:
-    #     pickle.dump(d2,f)
 
-    end_id, mole_qname_dict_batch, qname_pos_batch = process_mole_dict(d2, read_type, chrom, start_id, fw)
-    mole_qname_dict.update(mole_qname_dict_batch)
-    # qname_pos.update(qname_pos_batch)
-    qname_pos = safe_update(qname_pos, qname_pos_batch)
+    end_id = process_mole_dict(d2, read_type, chrom, start_id, fw, f_info)
+
     fw.close()
+    f_info.close()
 
-    with open(mole_qname_file,'wb') as f:
-        pickle.dump(mole_qname_dict, f)
 
-    with open(qname_pos_file,'wb') as f:
-        pickle.dump(qname_pos, f)
 
 def merge(outdir, outfile):
     cmd = '''cat %s/mole_dict*.p.h5 | sort -k2,2n | awk 'BEGIN{FS=OFS="\t"} {$7=NR; print}' > %s'''%(outdir, outfile)
@@ -535,7 +527,7 @@ def gen_H5(bamfile, vcf_file, sample, chr_num,  read_type, outdir, n_thread, mbq
 
     print(f"Elapsed time: {end - start:.2f} seconds")
 
-    clean_folder(outdir, sample, chrom)
+    # clean_folder(outdir, sample, chrom)
 
 
 

@@ -11,6 +11,7 @@ import pickle
 from collections import defaultdict
 import sys
 from subprocess import Popen
+import subprocess, time
 script_path = os.path.dirname(os.path.abspath( __file__ ))
 
 code_path = script_path + "/" 
@@ -26,6 +27,16 @@ parser.add_argument('--uniq_map_dir','-uniq_dir', help="Directory to 100-mer uni
 args = parser.parse_args()
 
 
+
+def timed_run(cmd, cmd_name):
+    start = time.time()
+    print(f"Running {cmd_name}...")
+    print(cmd)
+    subprocess.Popen(cmd, shell=True).wait()
+    elapsed = (time.time() - start)/60
+    print(f"{cmd_name} finished in {elapsed:.2f} minutes\n")
+
+
 def get_read_depth(bam_file,mbq,mmq,chr_num,out_dir,xin):
     if chr_num == 23:
         chr_num = "X"
@@ -35,7 +46,7 @@ def get_read_depth(bam_file,mbq,mmq,chr_num,out_dir,xin):
     depth_file_noHclip = out_dir + "chr" + str(chr_num) + "_depth_noHclip.txt"
     depth_file = out_dir  + "chr" + str(chr_num) + "_depth.txt"
     try:
-        rm_hardclip_cmd = "samtools view -h " + bam_file + " chr" + str(chr_num) + " | awk '$6 !~ /H|S/{print}' | samtools view -bS - > " + noclips_bam
+        rm_hardclip_cmd = "samtools view -@ 30 -h " + bam_file + " chr" + str(chr_num) + " | awk '$6 !~ /H|S/{print}' | samtools view -@ 30  -bS - > " + noclips_bam
         depth_cmd = "samtools depth " + noclips_bam + " -q " + str(mbq_threshold) +  " -Q " + str(mmq_threshold) + " > " + depth_file_noHclip 
         depth_cmd_2 = "samtools depth " + bam_file + " -q " + str(mbq_threshold)  + " -Q " +str(mmq_threshold) + " -r chr" + str(chr_num) + " > " + depth_file 
     except:
@@ -43,12 +54,18 @@ def get_read_depth(bam_file,mbq,mmq,chr_num,out_dir,xin):
         depth_cmd =  code_path + "samtools/" + "samtools depth " + noclips_bam + " -q " + str(mbq_threshold) +  " -Q " + str(mmq_threshold) + " > " + depth_file_noHclip 
         depth_cmd_2 = code_path + "samtools/" + "samtools depth " + bam_file + " -q " + str(mbq_threshold)  + " -Q " +str(mmq_threshold) + " -r chr" + str(chr_num) + " > " + depth_file 
 
-    print(rm_hardclip_cmd)
-    print(depth_cmd)
-    print(depth_cmd_2)
-    subprocess.Popen(rm_hardclip_cmd,shell=True).wait()
-    subprocess.Popen(depth_cmd,shell=True).wait()
-    subprocess.Popen(depth_cmd_2,shell=True).wait()
+    # print(rm_hardclip_cmd)
+    # print(depth_cmd)
+    # print(depth_cmd_2)
+    # subprocess.Popen(rm_hardclip_cmd,shell=True).wait()
+    # subprocess.Popen(depth_cmd,shell=True).wait()
+    # subprocess.Popen(depth_cmd_2,shell=True).wait()
+
+    timed_run(rm_hardclip_cmd, "rm_hardclip_cmd")
+    exit()
+    timed_run(depth_cmd, 'depth_cmd')
+    timed_run(depth_cmd_2, 'depth_cmd_2')
+
 
 
 
@@ -100,7 +117,11 @@ def Run_all(bam_file,chr_start,chr_end,mbq_threshold,mmq_threshold,out_dir,uniq_
         for ii in range(round_times):
             if ii < len(val):
                 run_list[ii+1].append(val[ii])
-
+    
+    start = time.time()
+    cmd_name = "get_read_depth"
+    print(f"Running {cmd_name}...")
+    
     for key, val in run_list.items():
         pool = Pool(processes=num_threads)
         for chr_num in val:
@@ -111,6 +132,8 @@ def Run_all(bam_file,chr_start,chr_end,mbq_threshold,mmq_threshold,out_dir,uniq_
             time.sleep(0.5)
         pool.join()
         print("done")
+    elapsed = (time.time() - start)/60
+    print(f"{cmd_name} finished in {elapsed:.2f} minutes\n")
 
     ###########
     num_threads = 12
@@ -136,6 +159,9 @@ def Run_all(bam_file,chr_start,chr_end,mbq_threshold,mmq_threshold,out_dir,uniq_
             if ii < len(val):
                 run_list[ii+1].append(val[ii])
 
+    start = time.time()
+    cmd_name = "get_coverage_per_pos"
+    print(f"Running {cmd_name}...")
     for key, val in run_list.items():
         pool = Pool(processes=num_threads)
         for chr_num in val:
@@ -151,9 +177,14 @@ def Run_all(bam_file,chr_start,chr_end,mbq_threshold,mmq_threshold,out_dir,uniq_
             time.sleep(0.5)
         pool.join()
         print("done here")
+    elapsed = (time.time() - start)/60
+    print(f"{cmd_name} finished in {elapsed:.2f} minutes\n")
     print("Extract all depth file, Done~")
 
    ###################
+    start = time.time()
+    cmd_name = "get_global_track_for_breakpoints"
+    print(f"Running {cmd_name}...")
     for chr_num in range(chr_start,chr_end + 1):
         cov_file = out_dir + "chr" + str(chr_num) + "_pos_cf.p" 
         cov_dict = pickle.load(open(cov_file,"rb"))
@@ -161,6 +192,10 @@ def Run_all(bam_file,chr_start,chr_end,mbq_threshold,mmq_threshold,out_dir,uniq_
         uniq_map_dict = pickle.load(open(uniq_map_file,"rb"))
         output_file = out_dir + "chr" + str(chr_num) + "_global_track.p"
         get_global_track_for_breakpoints(cov_dict,uniq_map_dict,output_file,"xin")
+
+    elapsed = (time.time() - start)/60
+    print(f"{cmd_name} finished in {elapsed:.2f} minutes\n")
+
     print("Extract all depth file, Done~")
 
 

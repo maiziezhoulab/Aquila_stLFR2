@@ -8,7 +8,7 @@ from multiprocessing import Pool
 import tempfile
 import argparse
 import pickle
-
+import pandas as pd
 def get_chromosome_length(bam_file, chromosome):
     """
     Get the length of a specific chromosome from a BAM file.
@@ -60,14 +60,14 @@ def count_stats_for_block(args):
 	"""
 	bam_file, chrom, start, end, outfile = args
 
-	# Open BAM file
-	bam = pysam.AlignmentFile(bam_file, "rb")
+	
 
 	unmapped_mate = 0
 	mate_diff_chr = 0
 	hard_clipped = 0
 	None_seq = 0
 	total_reads = 0
+	invalid_byte = 0
 
 	oer_reads = []
 
@@ -75,73 +75,107 @@ def count_stats_for_block(args):
 	dc_r2 = {}
 	fw = open(outfile,'w')
 	f_oer =  open(outfile.replace(".fq",".oer"),'w' )
+	# Open BAM file
+	bam = pysam.AlignmentFile(bam_file, "rb")
 	# Fetch reads for the block
-	for read in bam.fetch(chrom, start, end):
-		total_reads += 1
+	itr = bam.fetch(chrom, start, end)
 
-		# Count reads where the mate is unmapped
-		if (read.mate_is_unmapped) or (read.cigarstring is None):
-			unmapped_mate += 1
-			# oer_reads.append(read.qname)
-			f_oer.write(read.qname+"\n")
-			continue
+	# Open BAM file
+	# bam2 = pysam.AlignmentFile(bam_file, "rb")
 
-		# Count reads where the mate maps to a different chromosome
-		if read.next_reference_id != read.reference_id and not read.mate_is_unmapped:
-			mate_diff_chr += 1
-			# oer_reads.append(read.qname)
-			f_oer.write(read.qname+"\n")
-			continue
+	# for read in bam.fetch(chrom, start, end):
+	while True:
+		try:
+			offset = bam.tell()
+			read = next(itr)
+			total_reads += 1
 
-		# Count hard-clipped reads
-		if "H" in read.cigarstring:
-			hard_clipped += 1
-			# oer_reads.append(read.qname)
-			f_oer.write(read.qname+"\n")
-			continue
+			# Count reads where the mate is unmapped
+			if (read.mate_is_unmapped) or (read.cigarstring is None):
+				unmapped_mate += 1
+				# oer_reads.append(read.qname)
+				f_oer.write(read.qname+"\n")
+				continue
 
-		# read seq is None:
-		if read.seq is None:
-			None_seq+=1
-			# oer_reads.append(read.qname)
-			f_oer.write(read.qname+"\n")
-			continue
-		qname = read.qname
+			# Count reads where the mate maps to a different chromosome
+			if read.next_reference_id != read.reference_id and not read.mate_is_unmapped:
+				mate_diff_chr += 1
+				# oer_reads.append(read.qname)
+				f_oer.write(read.qname+"\n")
+				continue
 
-		if read.is_reverse:
-			seq = reverse_complement(read.seq)
-			qual = read.qual[::-1]
-		else:
-			seq = read.seq
-			qual = read.qual
-		found_pair = 0
-		if read.is_read1:
-			if qname in dc_r2:
-				seq1, qual1 = seq, qual
-				seq2, qual2 = dc_r2[qname]
-				dc_r2.pop(qname)
-				found_pair = 1
+			# Count hard-clipped reads
+			if "H" in read.cigarstring:
+				hard_clipped += 1
+				# oer_reads.append(read.qname)
+				f_oer.write(read.qname+"\n")
+				continue
+
+			# read seq is None:
+			if read.seq is None:
+				None_seq+=1
+				# oer_reads.append(read.qname)
+				f_oer.write(read.qname+"\n")
+				continue
+
+			# bam2.seek(offset)
+			# read2 = next(bam2)
+			# if read.qname!= read2.qname:
+			# 	# invalide byte 
+			# 	invalid_byte+=1
+			# 	f_oer.write(read.qname+"\n")
+			# 	continue
+
+
+
+			qname = read.qname
+
+			# if read.is_reverse:
+			# 	seq = reverse_complement(read.seq)
+			# 	qual = read.qual[::-1]
+			# else:
+			# 	seq = read.seq
+			# 	qual = read.qual
+			found_pair = 0
+			if read.is_read1:
+				if qname in dc_r2:
+					# seq1, qual1 = seq, qual
+					# seq2, qual2 = dc_r2[qname]
+					byte_r1 = offset
+					byte_r2 = dc_r2[qname]
+					dc_r2.pop(qname)
+					found_pair = 1
+				else:
+					# dc_r1[qname] = (seq, qual)
+					dc_r1[qname] = offset
 			else:
-				dc_r1[qname] = (seq, qual)
-		else:
-			if qname in dc_r1:
-				seq2, qual2 = seq, qual
-				seq1, qual1 = dc_r1[qname]
-				dc_r1.pop(qname)
-				found_pair = 1
-			else:
-				dc_r2[qname] = (seq, qual)
-		if found_pair:
-			assert len(seq1) == len(seq2) == len(qual1) == len(qual2)
-			fw.write("@"+qname+'\n')
-			fw.write(seq1+"\n")
-			fw.write("+\n")
-			fw.write(qual1+"\n")
-			fw.write("@"+qname+'\n')
-			fw.write(seq2+"\n")
-			fw.write("+\n")
-			fw.write(qual2+"\n")
+				if qname in dc_r1:
+					# seq2, qual2 = seq, qual
+					# seq1, qual1 = dc_r1[qname]
+					byte_r1 = dc_r1[qname]
+					byte_r2 = offset
+					dc_r1.pop(qname)
+					found_pair = 1
+				else:
+					# dc_r2[qname] = (seq, qual)
+					dc_r2[qname] = offset
+			if found_pair:
+				# assert len(seq1) == len(seq2) == len(qual1) == len(qual2)
+				# fw.write("@"+qname+'\n')
+				# fw.write(seq1+"\n")
+				# fw.write("+\n")
+				# fw.write(qual1+"\n")
+				# fw.write("@"+qname+'\n')
+				# fw.write(seq2+"\n")
+				# fw.write("+\n")
+				# fw.write(qual2+"\n")
+				fw.write(f"{qname}\t{byte_r1}\t{byte_r2}\n")
+				# fw.write(f"{qname}\tb\t{byte_r2}\n")
+		except StopIteration:
+			break
+
 	bam.close()
+	# bam2.close()
 	fw.close()
 	# Add any leftover unpaired reads
 	# oer_reads.extend(list(dc_r1.keys()))
@@ -250,6 +284,10 @@ def gen_stats(bam_file, chromosome, out_dir, prefix,logger, num_threads = 50):
 	merge_files(temp_files, outfile)
 	oer_file = out_dir+"/oer_"+chromosome
 	merge_dedup_files(oer_files, oer_file)
+
+	# clean folder 
+	cmd = "rm -r " + temp_dir 
+	os.system(cmd)
 	# exit()
 
 
@@ -312,72 +350,154 @@ def read_qname_list(qname_file):
         return set(line.strip() for line in f)
 
 
+def look_up_new_start(f,start_byte):
+	'''
+	given a byte, find after it, the earlist paired-end read block start byte
+	
+	'''
+	f.seek(start_byte)
+	if start_byte!=0:
+		f.readline()
+	new_start = f.tell()
+	lines = []
+	while True:
+		s = f.readline()
+		lines.append(s)
+		if s=='+\n':
+			break
+	lines.append(f.readline()) # get seq line
+	new_start1 = f.tell()
+	if lines == 4:
+		next_qname = f.readline() # get next qname line
+		# get a complete read block
+		if lines[0] == next_qname:
+			# start at the first block
+			return new_start
+		else:
+			# start at the second block
+			return new_start1
+	else:
+		# lines < 4, incomplete block, monitor next 8 lines
+		lines = []
+		for i in range(4):
+			lines.append(f.readline())
+		new_start2 = f.tell()
+		for i in range(4):
+			lines.append(f.readline())
+		if lines[0] == lines[4]:
+			# start at the second block
+			return new_start1 
+		else:
+			# start at the third block
+			return new_start2
+
+		
+
+
+
+
+		
+
+
 def process_block(args):
-    """
-    Extracts reads from a block of the FASTQ file and writes to a temporary file.
+	"""
+	Extracts reads from a block of the FASTQ file and writes to a temporary file.
 
-    Args:
-        args (tuple): Tuple containing (fastq_file, start, end, qname_set, temp_dir).
+	Args:
+		args (tuple): Tuple containing (fastq_file, start, end, qname_set, temp_dir).
 
-    Returns:
-        str: Path to the temporary file containing matched reads.
-    """
-    fastq_file, start, end, qname_set, temp_dir = args
-    temp_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir, suffix=".fastq")
-    temp_file_path = temp_file.name
-    temp_file.close()  # Close for writing using gzip
+	Returns:
+		str: Path to the temporary file containing matched reads.
+	"""
+	fastq_file, start, end, qname_file, temp_dir = args
+	# Read QNAME list
+	qname_set = read_qname_list(qname_file)
+	temp_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir, suffix=".fastq")
+	temp_file_path = temp_file.name
+	temp_file.close()  # Close for writing using gzip
 
-    open_func = gzip.open if fastq_file.endswith(".gz") else open
-    with open_func(fastq_file, "rt") as f, open(temp_file_path, "w") as out_f:
-        # Seek to the start position
-        f.seek(start)
+	open_func = gzip.open if fastq_file.endswith(".gz") else open
+	with open_func(fastq_file, "rt") as f, open(temp_file_path, "w") as out_f:
+		# Seek to the start position
+		f.seek(start)
 
-        # Adjust position to the next complete FASTQ record
-        if start != 0:
-            f.readline()  # Skip to the next line
-
-
-        while f.tell() < end:
-            # Read one FASTQ record (4 lines)
-            header = f.readline().strip()
-            if not header or not header.startswith('@'):
-                continue  # Stop if the line doesn't start with '@' (invalid header)
-            sequence = f.readline().strip()
-            plus = f.readline().strip()
-            quality = f.readline().strip()
-
-            if not header or not sequence or not plus or not quality:
-                break
-
-            # Check if the read name is in the QNAME set
-            read_name = header.split()[0].lstrip("@").split('#')[0]
-            if read_name in qname_set:
-                out_f.write(f"{header}\n{sequence}\n{plus}\n{quality}\n")
-
-    return temp_file_path
+		# # Adjust position to the next complete FASTQ record
+		# if start != 0:
+		# 	f.readline()  # Skip to the next line
 
 
-def split_file_by_bytes(fastq_file, num_blocks):
-    """
-    Splits a FASTQ file into byte blocks for parallel processing.
+		while f.tell() < end:
+			# Read one FASTQ record (4 lines)
+			cur_byte = f.tell()
+			# header = f.readline().strip()
+			# if not header or not header.startswith('@'):
+			# 	continue  # Stop if the line doesn't start with '@' (invalid header)
+			# sequence = f.readline().strip()
+			# plus = f.readline().strip()
+			# quality = f.readline().strip()
 
-    Args:
-        fastq_file (str): Path to the FASTQ file.
-        num_blocks (int): Number of blocks to divide the file into.
+			# if not header or not sequence or not plus or not quality:
+			# 	break
+			block = [f.readline() for i in range(8)]
+			assert block[0]==block[4]
 
-    Returns:
-        list of tuples: List of (start_byte, end_byte) for each block.
-    """
-    file_size = os.path.getsize(fastq_file)
-    block_size = file_size // num_blocks
+			# Check if the read name is in the QNAME set
+			read_name = block[0].split()[0].lstrip("@").split('#')[0]
+			if read_name in qname_set:
+				# out_f.write(f"{header}\n{sequence}\n{plus}\n{quality}\n")
+				out_f.write(f"{read_name}\t{cur_byte}\n")
+				# qname_set.discard(read_name)
 
-    blocks = []
-    for i in range(num_blocks):
-        start = i * block_size
-        end = (start + block_size - 1) if i < num_blocks - 1 else file_size - 1
-        blocks.append((start, end))
 
-    return blocks
+	return temp_file_path
+
+
+def validate_ends(f, end_list):
+	for end in end_list:
+		f.seek(end)
+		lines = []
+		for i in range(5):
+			lines.append(f.readline())
+		assert lines[0]==lines[4]
+
+def split_file_by_bytes(fastq_file, num_blocks, outfile):
+	"""
+	Splits a FASTQ file into byte blocks for parallel processing.
+
+	Args:
+		fastq_file (str): Path to the FASTQ file.
+		num_blocks (int): Number of blocks to divide the file into.
+
+	Returns:
+		list of tuples: List of (start_byte, end_byte) for each block.
+	"""
+	file_size = os.path.getsize(fastq_file)
+	block_size = file_size // num_blocks
+
+	blocks = []
+	for i in range(num_blocks):
+		start = i * block_size
+		end = (start + block_size - 1) if i < num_blocks - 1 else file_size - 1
+		blocks.append((start, end))
+	f = open(fastq_file,'r')
+	ends_list = [look_up_new_start(f,end) for _,end in blocks[:-1]]
+	validate_ends(f, ends_list)
+	f.close()
+	new_blocks = []
+	for i in range(len(blocks)):
+		if i == 0:
+			block = (blocks[i][0], ends_list[i])
+		elif i == (len(blocks)-1):
+			block = (ends_list[i-1], blocks[i][1])
+		else:
+			block = (ends_list[i-1], ends_list[i])
+		new_blocks.append(block)
+	# with open(outfile):
+	df = pd.DataFrame(new_blocks)
+	df.columns = ['start','end']
+	df.to_csv(outfile,sep = '\t')
+	
+	return new_blocks
 
 
 def merge_temp_files(temp_files, output_file):
@@ -416,18 +536,17 @@ def extract_oer(fastq_file, out_dir, chromosome, prefix, num_threads = 50):
 	print(temp_dir)
 
 	try:
-		# Read QNAME list
-		qname_set = read_qname_list(qname_file)
+		
 
 		# Split the FASTQ file into blocks
-		blocks = split_file_by_bytes(fastq_file, num_threads)
+		blocks = split_file_by_bytes(fastq_file, num_threads, out_dir+"/fastq_split.tsv")
 
 		# Prepare arguments for parallel processing
-		tasks = [(fastq_file, start, end, qname_set, temp_dir) for start, end in blocks]
+		tasks = [(fastq_file, start, end, qname_file, temp_dir) for start, end in blocks]
 
 		# Process blocks in parallel
 		with Pool(num_threads) as pool:
-			temp_files = pool.map(process_block, tasks)
+			temp_files = pool.map(process_block, tasks) # temp_files preserves the order of tasks
 
 		# Merge temporary files into the final output
 		merge_temp_files(temp_files, oer_output_file)
@@ -455,19 +574,19 @@ def remove_duplicates(input_fastq, output_fastq, out_dir):
 	dup_pair = 0
 	cnt = 0 
 	with open(input_fastq, 'r') as infile, open(output_fastq, 'w') as outfile:
-		lines = []  # Buffer for the current read pair
+		# lines = []  # Buffer for the current read pair
 		for i, line in enumerate(infile):
-			lines.append(line)
-			if i  % 8 == 7:  # Every 8 lines represent a read pair
-				total_pair+=1
-				read_name = lines[0].split()[0]  # Extract read name from the first line
-				if read_name not in seen:
-					seen.add(read_name)
-					outfile.writelines(lines)  # Write the unique read pair to output
-					cnt+=1
-				else:
-					dup_pair+=1
-				lines = []  # Clear buffer for the next read pair
+			# lines.append(line)
+			# if i  % 2 == 1:  # Every 2 lines represent a read pair
+			total_pair+=1
+			read_name = line.split()[0]  # Extract read name from the first line
+			if read_name not in seen:
+				seen.add(read_name)
+				outfile.writelines(line)  # Write the unique read pair to output
+				cnt+=1
+			else:
+				dup_pair+=1
+			# lines = []  # Clear buffer for the next read pair
 	pct = round(dup_pair/total_pair*100,2)
 	with open(out_dir + "/dedup_summary.txt",'w') as f:
 		f.write(f"Total pair of reads: {total_pair}\n" )
@@ -493,7 +612,6 @@ def main(bam_file, fastq_file, chromosome,out_dir, prefix,num_threads):
 	
 	
 	extract_oer(fastq_file, out_dir, chromosome,  prefix, num_threads )
-	# exit()
 	
 	input_fastq =  f"{out_dir}/{prefix}_{chromosome}_temp.fq"
 	output_fastq =  f"{out_dir}/{prefix}_{chromosome}.fq"

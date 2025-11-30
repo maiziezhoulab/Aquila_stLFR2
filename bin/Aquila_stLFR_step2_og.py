@@ -11,8 +11,6 @@ script_path = os.path.dirname(os.path.abspath( __file__ ))
 code_path = script_path + "/" 
 __author__ = "Xin Zhou@Stanford"
 parser = ArgumentParser(description="Author: xzhou15@cs.stanford.edu\n",usage='use "python3 %(prog)s --help" for more information')
-parser.add_argument('--bam_file','-bam',help="Required parameter; BAM file, called by bwa mem",required=True)
-parser.add_argument('--fastq_file','-fq', help="wgs fastq")
 parser.add_argument('--chr_number','-chr',type=int,help="chromosome number, eg. 1,2,3...22")
 # parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
 # parser.add_argument('--chr_end','-end',type=int,help="chromosome end by, default = 23", default=23)
@@ -22,7 +20,7 @@ parser.add_argument('--num_threads','-t',type=int,help="number of threads, defau
 parser.add_argument('--num_threads_spades','-t_spades',type=int,help="number of threads for spades, default = 5", default=5)
 parser.add_argument('--block_len_use','-bl',type=int,help="phase block len threshold, default = 100000",default=100000)
 parser.add_argument('--read_type','-r',help = 'read type, single-end or paired-end. please input "SE" or "PE"', choices=['SE','PE'], default = 'PE')
-parser.add_argument('--sample_name','-name',help="Required parameter; sample name you can define, for example, S12878",required=True)
+# parser.add_argument('--sample_name','-name',help="Required parameter; sample name you can define, for example, S12878",required=True)
 args = parser.parse_args()
 
 def read_ref(fasta_file,chr_num,out_dir):
@@ -58,16 +56,17 @@ def extract_ref_chr(ref_file,chr_num,out_dir):
     print("chr" + str(chr_num) + ":")
     print(total_len)
 
-
-
-def local_assembly_for_small_chunks(bam_file, sample_fastq, chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type, sample):
-    use_cmd = "python " + code_path + "Run_spades_final_MT_2_all_noec_deltemp.py" + " --num_threads " + str(num_threads) + " --num_threads_spades " + str(num_threads_spades) + " --chr_start " + str(chr_start) + " --chr_end " + str(chr_end) + " --out_dir " + Local_Assembly_dir + " --minicontig_dir " + Assembly_Contigs_dir +\
-    " --read_type "+read_type + " --sample " + sample + " --bam_file " + bam_file + " --sample_fastq " + sample_fastq
+def local_assembly_for_small_chunks(chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type):
+    use_cmd = "python " + code_path + "Run_spades_final_MT_2_all_noec_deltemp_og.py" + " --num_threads " + str(num_threads) + " --num_threads_spades " + str(num_threads_spades) + " --chr_start " + str(chr_start) + " --chr_end " + str(chr_end) + " --out_dir " + Local_Assembly_dir + " --minicontig_dir " + Assembly_Contigs_dir +\
+    " --read_type "+read_type
     Popen(use_cmd,shell=True).wait()
 
 
-def Complete_contiguity(chr_start,chr_end,Assembly_Contigs_dir,phase_blocks_cut_highconf_dir,cut_threshold,ref_file):
-    use_cmd = "python " + code_path + "Concatenate_contigs_from_microcontigs_v2.py" + " --chr_start "  + str(chr_start) + " --chr_end " + str(chr_end) + " --out_dir " + Assembly_Contigs_dir + " --phase_cut_folder " + phase_blocks_cut_highconf_dir + " --cut_threshold " + str(cut_threshold) + " --ref_file " + ref_file 
+
+
+
+def Complete_contiguity(chr_start,chr_end,Assembly_Contigs_dir,phase_blocks_cut_highconf_dir,cut_threshold,ref_dir,ref_idx_file):
+    use_cmd = "python " + code_path + "Concatenate_contigs_from_microcontigs.py" + " --chr_start "  + str(chr_start) + " --chr_end " + str(chr_end) + " --out_dir " + Assembly_Contigs_dir + " --phase_cut_folder " + phase_blocks_cut_highconf_dir + " --cut_threshold " + str(cut_threshold) + " --ref_file " + ref_idx_file + " --ref_dir " + ref_dir
     Popen(use_cmd,shell=True).wait()
   
 
@@ -76,24 +75,40 @@ def main():
     if len(sys.argv) == 1:
         Popen("python " + "Aquila_step2.py -h",shell=True).wait()
     else:
-        bam_file = args.bam_file
-        sample_fastq = args.fastq_file
         chr_start = args.chr_number
         chr_end = args.chr_number
         ref_file = args.reference
         cut_threshold = args.block_len_use
         num_threads = int(args.num_threads)
         num_threads_spades = int(args.num_threads_spades)
+        ref_dir = args.out_dir + "/ref_dir/"
         read_type = args.read_type
-        sample = args.sample_name
+        # sample = args.sample_name
+        if os.path.exists(ref_dir):
+            print("using existing output folder: " + ref_dir)
+        else:
+            os.makedirs(ref_dir)
+        if ~os.path.exists(ref_dir + "ref.mmi"):
+            try:
+                mk_ref_idx = "minimap2 -d " + ref_dir + "ref.mmi "  + ref_file
+            except:
+                mk_ref_idx = code_path + "minimap2/" + "minimap2 -d " + ref_dir + "ref.mmi "  + ref_file
 
+            Popen(mk_ref_idx,shell=True).wait()
+        for chr_num in range(chr_start,chr_end + 1):
+            extract_ref_chr(ref_file,chr_num,ref_dir)
+        extract_ref_chr(ref_file,"X",ref_dir)
+        for chr_num in range(chr_start,chr_end + 1):
+            read_ref(ref_dir + "genome_ref_chr" + str(chr_num) + ".fasta",chr_num,ref_dir)
+        read_ref(ref_dir + "genome_ref_chrX.fasta",23,ref_dir)
 
+        ref_idx_file = ref_dir + "ref.mmi"
         Assembly_Contigs_dir = args.out_dir + "/Assembly_Contigs_files/"
         phase_blocks_cut_highconf_dir = args.out_dir + "/phase_blocks_cut_highconf/"
         Local_Assembly_dir = args.out_dir + "/Local_Assembly_by_chunks/"
 
-        local_assembly_for_small_chunks(bam_file,sample_fastq, chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type,sample)
-        # Complete_contiguity(chr_start,chr_end,Assembly_Contigs_dir,phase_blocks_cut_highconf_dir,cut_threshold,ref_dir)
+        local_assembly_for_small_chunks(chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type,)
+        Complete_contiguity(chr_start,chr_end,Assembly_Contigs_dir,phase_blocks_cut_highconf_dir,cut_threshold,ref_dir,ref_idx_file)
     
 if __name__ == "__main__":
     main()

@@ -144,7 +144,8 @@ def Cut_phaseblock_for_phased_h5(h5_phased_file,chr_num,out_file,block_len_use,b
     cut_phase_block_2 = defaultdict(list)
     cut_phase_block_3 = defaultdict(list)
     """  use 100kb for each phase block  """
-    global_track_dict =  pickle.load(open(global_track,"rb"))
+    # global_track_dict =  pickle.load(open(global_track,"rb"))
+    global_track_dict = set(np.load(global_track).ravel())
     count_break_highconf = 0
     count_break_highconf_2 = 0
     count_break_lowconf = 0
@@ -273,7 +274,7 @@ if __name__ == "__main__":
         bed_file = output_dir + "chr" + str(chr_num) + ".phased_final_cut_by_" + str(block_len_use) + "_phase_blocks.bed"
         phase_block_file = output_dir + "chr" + str(chr_num) + ".phased_final_cut_by_" + str(block_len_use) + "_phase_blocks.p"
         HC_breakpoint_file = output_dir + "chr" + str(chr_num) + ".phased_final_cut_by_" + str(block_len_use) + "_HC_breakpoint_2.p"
-        global_track = hc_dir + "chr" + str(chr_num) + "_global_track.p"
+        global_track = hc_dir + "chr" + str(chr_num) + "_global_track.npy"
         Cut_phaseblock_for_phased_h5(file_name,chr_num,out_file,block_len_use,block_threshold,output_dir,bed_file,phase_block_file,global_track,HC_breakpoint_file,"xin")
         #pool.apply_async(Cut_phaseblock_for_phased_h5,(file_name,chr_num,out_file,block_len_use,block_threshold,output_dir,bed_file,phase_block_file,global_track,HC_breakpoint_file,"xin"))
    

@@ -13,6 +13,10 @@ import glob
 from subprocess import Popen
 import glob
 import logging
+from joblib import Parallel, delayed
+from tqdm import tqdm
+
+
 
 
 def split_h5(h5_file,chr_num,output_dir):
@@ -673,8 +677,21 @@ def process_chr(h5_file,overlap_var_threshold, support_threshold,var_depth_used,
     all_merge_cluster_complement_dict_start_end = cluster_complement_dict_start_end   
     Recursive_clustering(all_merge_cluster_dict,all_merge_cluster_complement_dict,all_merge_cluster_dict_start_end, all_merge_cluster_complement_dict_start_end,1,mole_dict,mole_info,h5_file,overlap_var_threshold,support_threshold)
 
+def process_one_block(output_dir,chr_num,i,hetero_var_dict,overlap_var_threshold,support_threshold,var_depth_used, logger):
+    '''' metric_phase_percent, metric_corr_percent not useful; too lazy to change the ***'''
+    metric_phase_percent = []
+    metric_corr_percent = []
+    cur_filenum = i + 1
+    cur_filename = output_dir + "chr" + str(chr_num) + "_" + str(cur_filenum)
+    phase_block_file = cur_filename + ".p"
+    output_file_raw = cur_filename + ".phased.raw"
+    output_file = cur_filename + ".phased"
+    logger.info("Current file name: " + cur_filename)
+    process_chr(cur_filename,overlap_var_threshold,support_threshold,var_depth_used,"xin")
+    read_phase_block_file(phase_block_file,cur_filename,output_file_raw,metric_phase_percent, metric_corr_percent,hetero_var_dict)
+    Finalize_phase_block(output_file_raw, output_file)
 
-def Phase_start(output_dir,h5_dir,sample_name,chr_start,chr_end,overlap_var_threshold,support_threshold,xin):
+def Phase_start(output_dir,h5_dir,sample_name,chr_start,chr_end,overlap_var_threshold,support_threshold,num_threads, xin):
     global logger
     ## set logger
     logging.basicConfig(
@@ -709,26 +726,16 @@ def Phase_start(output_dir,h5_dir,sample_name,chr_start,chr_end,overlap_var_thre
         logger.info("Raw clustering...")
         mole_h5_file_origin = h5_dir + sample_name + "_chr" + str(chr_num) + "_sorted.h5"
         total_filenum = split_h5(mole_h5_file_origin,chr_num,output_dir)
-        for i in range(total_filenum):
-            cur_filenum = i + 1
-            cur_filename = output_dir + "chr" + str(chr_num) + "_" + str(cur_filenum)
+        # for i in range(total_filenum):
+        #     cur_filenum = i + 1
+        #     cur_filename = output_dir + "chr" + str(chr_num) + "_" + str(cur_filenum)
+        logger.info(f"total_filenum: {total_filenum}")
+        logger.info(f"Num of threads: {num_threads}")
+        results = Parallel(n_jobs=num_threads)(delayed(process_one_block)\
+        (output_dir,chr_num,i,hetero_var_dict,
+            overlap_var_threshold,
+            support_threshold,var_depth_used, logger) for i in range(total_filenum))
 
-            process_chr(cur_filename,overlap_var_threshold,support_threshold,var_depth_used,"xin")
-
-        logger.info(""" Assign FINAL phase blocks """)
-        metric_phase_percent = []
-        metric_corr_percent = []
-        for i in range(total_filenum):
-            cur_filenum = i + 1
-            cur_filename = output_dir + "chr" + str(chr_num) + "_" + str(cur_filenum)
-            phase_block_file = cur_filename + ".p"
-            output_file_raw = cur_filename + ".phased.raw"
-            output_file = cur_filename + ".phased"
-            logger.info("Current file name: " + cur_filename)
-            read_phase_block_file(phase_block_file,cur_filename,output_file_raw,metric_phase_percent, metric_corr_percent,hetero_var_dict)
-            Finalize_phase_block(output_file_raw, output_file)
-
-        # logger.info("------Final Results for chr" + str(chr_num) + "-------")
 
         for file_ in glob.glob(output_dir + "chr" + str(chr_num) + "_*.phased"):
             Popen("cat " + file_ + ">> " +  output_dir + "chr" + str(chr_num) + ".phased_final_1",shell=True).wait()
@@ -767,3 +774,7 @@ def Phase_start(output_dir,h5_dir,sample_name,chr_start,chr_end,overlap_var_thre
         #### cancatenate all phased files together ####
         Popen("cat " + phase_file_for_mole_with_one_var_2 + " " + phase_file_final_3 + " > " + phase_file_final_total,shell=True).wait()
         logger.info("Phasing finished")
+
+        ## clean 
+        cmd = f"rm {output_dir}/chr*.phased_final_* {output_dir}/chr{chr_num}_*"
+        os.system(cmd)

@@ -33,13 +33,14 @@ level=logging.INFO,
 datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(" ")
 
+from Generate_highconf_cut_profile import gen_highconf_profile
 
 def Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sample_name,read_type):
-    use_cmd = "python3 " + code_path + "Run_h5_all_multithreads.py" + " --bam_file " + bam_file + \
+    use_cmd = "python3 " + code_path + "Run_h5_all_multithreads_v4.py" + " --bam_file " + bam_file + \
     " --vcf_file " + vcf_file + " --sample_name " + \
-        sample_name + " --chr_start " \
+        sample_name + " --chr_num " \
             + str(chr_start) \
-                + " --chr_end " + str(chr_end) + " --mbq 13 --mmq 20 --boundary 50000 " + \
+                + " --mbq 13 --mmq 20 --boundary 50000 " + \
                     " --num_threads " + str(num_threads) + " --out_dir " + h5_dir +\
                     " --read_type "+read_type
     print(use_cmd)
@@ -49,17 +50,18 @@ def Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sa
     Popen(use_cmd,shell=True).wait()
 
 
-def Get_highconf_profile(bam_file,chr_start,chr_end,HighConf_file_dir,uniq_map_dir):
-    use_cmd = "python3 " + code_path + "Generate_highconf_cut_profile_v2.py" + " --bam_file " +  bam_file + " --chr_start " + str(chr_start) + " --chr_end " + str(chr_end) + " --mbq 13 --mmq 20 " + " --out_dir " + HighConf_file_dir + " --uniq_map_dir " + uniq_map_dir
-    print(use_cmd)
+  
+def Get_highconf_profile(bam_file,chr_start,chr_end,HighConf_file_dir,uniq_map_dir, threads):
     logger.info("******************************************************\n\n")
     logger.info("     Generate high confidence cut profile             \n\n")
     logger.info("******************************************************\n\n")
-    Popen(use_cmd,shell=True).wait()
-  
+    gen_highconf_profile(bam_file,chr_start,chr_end,13,20,HighConf_file_dir,uniq_map_dir,threads)
 
-def Haplotying_fragments(chr_start,chr_end,phased_file_dir,h5_dir,sample_name):
-    use_cmd = "python3 " + code_path + "Run_phase_alg_multithreads2.py" + " --chr_start " + str(chr_start) + " --chr_end " + str(chr_end) + " --overlap_threshold 3 --support_threshold 5 " + " --out_dir " + phased_file_dir  + " --h5_dir " + h5_dir + " --sample_name " + sample_name
+def Haplotying_fragments(chr_start,chr_end,phased_file_dir,h5_dir,sample_name, threads):
+    use_cmd = "python3 " + code_path + "Run_phase_alg_multithreads2.py" + " --chr_start " + str(chr_start) + " --chr_end " + str(chr_end) + \
+        " --overlap_threshold 3 --support_threshold 5 " + " --out_dir "\
+              + phased_file_dir  + " --h5_dir " + h5_dir + " --sample_name " + sample_name\
+              + " -t " + str(threads)
     print(use_cmd)
     logger.info("******************************************************\n\n")
     logger.info("                 Phasing molecules                    \n\n")
@@ -101,8 +103,24 @@ def Extract_reads_for_small_chunks_old(chr_start,chr_end,h5_dir,phase_blocks_cut
     Popen(use_cmd,shell=True).wait()
 
 
-def Extract_reads_for_small_chunks(input_dir,fastq_file_one_chr ,chr_num, num_threads,max_mem, sample_name):
-    use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v6.py" + \
+
+def Extract_reads_for_one_chromosome(bam_file, input_dir,fastq_file,chr_num, num_threads, sample_name):
+    out_dir = f"{input_dir}/chr{chr_num}_fastq/"
+    use_cmd = "python3 " + code_path + "BAM2FASTQ_By_Chromosome_byte.py" + \
+        " --bam_file " + bam_file + \
+        " --fastq_file " + fastq_file + \
+        " --prefix " + sample_name + " --chromosome chr" + str(chr_num) + \
+        " -t " +  str(num_threads) +\
+        " --out_dir "+ out_dir
+    print(use_cmd)
+    logger.info("******************************************************\n\n")
+    logger.info("               Extract by chrom reads byte positions             \n\n")
+    logger.info("******************************************************\n\n")
+    Popen(use_cmd,shell=True).wait()
+
+def Extract_reads_for_small_chunks(input_dir,chr_num, num_threads,max_mem, sample_name):
+    fastq_file_one_chr = f"{input_dir}/chr{chr_num}_fastq/{sample_name}_chr{chr_num}.fq"
+    use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v7.py" + \
         " --indir " + input_dir + " --chr_fastq " + fastq_file_one_chr + \
         " --sample_name " + sample_name + " --chr_num " + str(chr_num) + " --n_thread " +  str(num_threads) +\
         " --max_mem "+str(max_mem)
@@ -110,6 +128,16 @@ def Extract_reads_for_small_chunks(input_dir,fastq_file_one_chr ,chr_num, num_th
     logger.info("******************************************************\n\n")
     logger.info("               Split fastq by phase block             \n\n")
     logger.info("******************************************************\n\n")
+    Popen(use_cmd,shell=True).wait()
+
+def clean_folder(out_dir, chr_num):
+    chrom = 'chr'+str(chr_num)
+    use_cmd = f"cd {out_dir}; rm -r {chrom}_fastq H5_for_molecules  HighConf_file results_phased_probmodel; " +\
+            f"cd phase_blocks_cut_highconf; rm chr*_HC_breakpoint.bed chr*.phased_final_cut_by_100000  chr*.phased_final_cut_by_100000_phase_blocks* "
+    logger.info("******************************************************\n\n")
+    logger.info("               Clean up Step1 intermediate files             \n\n")
+    logger.info("******************************************************\n\n")
+    logger.info(use_cmd)
     Popen(use_cmd,shell=True).wait()
 
 def main():
@@ -140,13 +168,14 @@ def main():
 
         assert read_type in ['SE','PE']
 
-        # ---------------uncomment start
-        # Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sample_name,read_type) 
-        # Get_highconf_profile(bam_file,chr_start,chr_end,HighConf_file_dir,uniq_map_dir)
-        Haplotying_fragments(chr_start,chr_end,phased_file_dir,h5_dir,sample_name)
+
+        Get_fragment_files(bam_file,vcf_file,chr_start,chr_end,h5_dir,num_threads,sample_name,read_type) 
+        Get_highconf_profile(bam_file,chr_start,chr_end,HighConf_file_dir,uniq_map_dir, num_threads)
+        Haplotying_fragments(chr_start,chr_end,phased_file_dir,h5_dir,sample_name, num_threads)
         Cut_phase_blocks(chr_start,chr_end,block_threshold,block_len_use,phase_blocks_cut_highconf_dir,phased_file_dir,HighConf_file_dir) 
-        # #--------------- uncomment end
-        Extract_reads_for_small_chunks(args.out_dir,fastq_file, args.chr_number, num_threads,max_mem, sample_name)
+        Extract_reads_for_one_chromosome(bam_file, args.out_dir,fastq_file,args.chr_number, num_threads, sample_name)
+        Extract_reads_for_small_chunks(args.out_dir, args.chr_number, num_threads,max_mem, sample_name)
+        # clean_folder(args.out_dir, args.chr_number)
         
 if __name__ == "__main__":
     main()

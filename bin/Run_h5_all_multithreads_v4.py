@@ -10,8 +10,8 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 import pickle
 import pysam, math
-
-
+import psutil
+import gc
 def extract_vcf_info(vcf_file,chrom, out_dir, mbq_threshold):
     f = open(vcf_file,"r")
     curr = 0
@@ -167,7 +167,7 @@ def split_pos_ref_into_blocks(pos_ref_list, n_blocks):
 
     return blocks
 
-def per_read_alleles_refpos(bam_path, chrom, block, sites, out_dir, task_id,  min_mapq=20, one_based=False, maxd=50_000):
+def per_read_alleles_refpos(bam_path, chrom, block, sites, out_dir, task_id, logger, min_mapq=20, one_based=False, maxd=50_000):
     """
     Extracts per-read alleles at specific reference positions using get_reference_positions().
 
@@ -185,6 +185,8 @@ def per_read_alleles_refpos(bam_path, chrom, block, sites, out_dir, task_id,  mi
         pandas.DataFrame with columns:
         [chrom, pos, read, allele, is_del, read_start, strand, mapq, bx]
     """
+    process = psutil.Process(os.getpid()) 
+    logger.info(f"task{task_id} start Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
     bam = pysam.AlignmentFile(bam_path, "rb")
     rows = []
 
@@ -241,6 +243,9 @@ def per_read_alleles_refpos(bam_path, chrom, block, sites, out_dir, task_id,  mi
     outfile = f"{out_dir}/mole_dict_{task_id}_{chrom}_{block[0]}_{block[1]}.p"
     with open(outfile,'wb') as f:
         pickle.dump(mole_read_dict, f)
+    logger.info(f"task{task_id} end Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
+    del mole_read_dict 
+    gc.collect()
     return 
 
 def organize_snps(read_list):
@@ -296,12 +301,8 @@ def parse_mole(mole, read_type, chrom, bx,mole_id):
         valid_pair = len(dc)
 
     if valid_pair>=2 :
-        # dc_read = defaultdict(list)
         mole_variant = organize_snps(mole)
         hp_str = check_hp(mole_variant)
-
-        # for read in mole_variant:
-        #     dc_read[read[0]].append(read[1])
         poss = [read[2] for read in mole]
         line = f"{chrom[3:]}\t{min(poss)+1}\t{max(poss)+1}\t{max(poss)-min(poss)+100}\t{len(poss)}\t{bx}\t{mole_id}\t{hp_str}"
     else:
@@ -312,20 +313,18 @@ def parse_mole(mole, read_type, chrom, bx,mole_id):
 def process_mole_dict(mole_dict, read_type, chrom, start_id, fw):
     mole_id = start_id
     mole_qname_dict = {}
-    qname_pos = defaultdict(list)
+    # qname_pos = defaultdict(list)
     for bx, mole_list in mole_dict.items():
         for mole in mole_list:
             line, dc_read, dc_qname_pos = parse_mole(mole, read_type, chrom, bx, mole_id)
             if line!='':
-                mole_qname_dict[mole_id] = dc_read
-
-                for qname, poss in dc_qname_pos.items():
-                    qname_pos[qname].extend(poss)
+                mole_qname_dict[mole_id] = dc_qname_pos
+                # for qname, poss in dc_qname_pos.items():
+                #     qname_pos[qname].extend(poss)
                 # print(line)
                 mole_id+=1 
                 fw.write(line)
-
-    return mole_id, mole_qname_dict, qname_pos
+    return mole_id, mole_qname_dict
 
 def process_one_pkl(pkl_list, i,  chrom, maxd):
 
@@ -411,13 +410,14 @@ def safe_update(qname_dict, qname_dict_cur):
     return qname_dict
 
 
-def write_h5(pkl_list , out_dir, sample, chrom,  read_type, maxd= 50_000):
-
+def write_h5(pkl_list , out_dir, sample, chrom,  read_type,logger,  maxd= 50_000):
+    process = psutil.Process(os.getpid()) 
+    logger.info(f"write H5 starting  Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
     start_id = 0
 
     h5_file = f"{out_dir}/{sample}_{chrom}.h5"
     mole_qname_file = f"{out_dir}/{sample}_{chrom}_qname.p"
-    qname_pos_file = f"{out_dir}/{sample}_{chrom}_qname_pos.p"
+    # qname_pos_file = f"{out_dir}/{sample}_{chrom}_qname_pos.p"
 
     fw = open(h5_file,'w')
 
@@ -451,32 +451,34 @@ def write_h5(pkl_list , out_dir, sample, chrom,  read_type, maxd= 50_000):
                     cnt+=1
             print(cnt)
         
-        end_id, mole_qname_dict_batch, qname_pos_batch = process_mole_dict(d1, read_type, chrom, start_id, fw)
+        end_id, mole_qname_dict_batch = process_mole_dict(d1, read_type, chrom, start_id, fw)
         if i == 0:
             mole_qname_dict = mole_qname_dict_batch
-            qname_pos = qname_pos_batch 
+            # qname_pos = qname_pos_batch 
         else:
             mole_qname_dict.update(mole_qname_dict_batch)
             # qname_pos.update(qname_pos_batch)
-            qname_pos = safe_update(qname_pos, qname_pos_batch)
+            # qname_pos = safe_update(qname_pos, qname_pos_batch)
         start_id = end_id+1
 
         cur_dict = d2 
+        logger.info(f"After chunk {i+1} Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
 
     # with open(pkl_list[-1]+".new",'wb') as f:
     #     pickle.dump(d2,f)
 
-    end_id, mole_qname_dict_batch, qname_pos_batch = process_mole_dict(d2, read_type, chrom, start_id, fw)
+    end_id, mole_qname_dict_batch  = process_mole_dict(d2, read_type, chrom, start_id, fw)
     mole_qname_dict.update(mole_qname_dict_batch)
     # qname_pos.update(qname_pos_batch)
-    qname_pos = safe_update(qname_pos, qname_pos_batch)
+    # qname_pos = safe_update(qname_pos, qname_pos_batch)
     fw.close()
+    logger.info(f"After chunk {i+2} Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
 
     with open(mole_qname_file,'wb') as f:
         pickle.dump(mole_qname_dict, f)
 
-    with open(qname_pos_file,'wb') as f:
-        pickle.dump(qname_pos, f)
+    # with open(qname_pos_file,'wb') as f:
+    #     pickle.dump(qname_pos, f)
 
 def merge(outdir, outfile):
     cmd = '''cat %s/mole_dict*.p.h5 | sort -k2,2n | awk 'BEGIN{FS=OFS="\t"} {$7=NR; print}' > %s'''%(outdir, outfile)
@@ -496,7 +498,13 @@ def clean_folder(outdir, sample, chrom):
 
 
 def gen_H5(bamfile, vcf_file, sample, chr_num,  read_type, outdir, n_thread, mbq_threshold = 13, min_mapq = 20, max_d =50_000):
-    
+    import logging
+    ## set logger
+    logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
+    logger = logging.getLogger(" ")
     
     chrom = f'chr{chr_num}'
 
@@ -515,6 +523,8 @@ def gen_H5(bamfile, vcf_file, sample, chr_num,  read_type, outdir, n_thread, mbq
 
 
     print(len(dc), len(all_vars))
+    del dc 
+    gc.collect()
     n_blocks = n_thread 
     n_blocks = 60
     blocks = split_chrom(bamfile, chrom, n_blocks)
@@ -523,12 +533,15 @@ def gen_H5(bamfile, vcf_file, sample, chr_num,  read_type, outdir, n_thread, mbq
 
     pkl_list = [f"{outdir}/mole_dict_{i}_{chrom}_{block[0]}_{block[1]}.p"for i,block in enumerate(blocks)]
 
-
+    process = psutil.Process(os.getpid()) 
+    logger.info(f"before  Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
     results = Parallel(n_jobs=n_thread)(delayed(per_read_alleles_refpos)\
-                                        (bamfile, chrom, blocks[task_id], var_blocks[task_id], outdir, task_id, min_mapq, False, max_d) 
+                                        (bamfile, chrom, blocks[task_id], var_blocks[task_id], outdir, task_id,logger, min_mapq, False, max_d) 
                                         for task_id in tqdm(range(len(blocks))))
+    logger.info(f"After  Memory usage: {process.memory_info().rss / 1024 ** 2:.2f} MB")
 
-    write_h5(pkl_list, outdir, sample, chrom, read_type )
+
+    write_h5(pkl_list, outdir, sample, chrom, read_type, logger )
     sort(f"{outdir}/{sample}_{chrom}.h5")
 
     end = time.time()
