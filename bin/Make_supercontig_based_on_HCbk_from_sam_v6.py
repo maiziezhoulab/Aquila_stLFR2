@@ -70,7 +70,8 @@ def Make_supercontig_based_on_HCbk(HCbk_file,contig_sam_file,ref_fasta_file,use_
 
     # Use:  
     fasta = pysam.FastaFile(ref_fasta_file)  
-    chr_name = f"chr{use_chr_num}"  # or just str(chr_num) depending on your FASTA format 
+    # chr_name = f"chr{use_chr_num}"  # or just str(chr_num) depending on your FASTA format 
+    chr_name = use_chr_num
     
     ### For every big phase block, starting merging
     for key, contig_info_dict in merge_dict.items():

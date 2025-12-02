@@ -11,8 +11,8 @@ script_path = os.path.dirname(os.path.abspath( __file__ ))
 code_path = script_path + "/" 
 __author__ = "Xin Zhou@Stanford"
 parser = ArgumentParser(description="Author: xzhou15@cs.stanford.edu\n",usage='use "python3 %(prog)s --help" for more information')
-parser.add_argument('--bam_file','-bam',help="Required parameter; BAM file, called by bwa mem",required=True)
-parser.add_argument('--fastq_file','-fq', help="wgs fastq")
+# parser.add_argument('--bam_file','-bam',help="Required parameter; BAM file, called by bwa mem",required=True)
+# parser.add_argument('--fastq_file','-fq', help="wgs fastq")
 parser.add_argument('--chr_number','-chr',type=int,help="chromosome number, eg. 1,2,3...22")
 # parser.add_argument('--chr_start','-start',type=int,help="chromosome start from, default = 1", default=1)
 # parser.add_argument('--chr_end','-end',type=int,help="chromosome end by, default = 23", default=23)
@@ -60,9 +60,9 @@ def extract_ref_chr(ref_file,chr_num,out_dir):
 
 
 
-def local_assembly_for_small_chunks(bam_file, sample_fastq, chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type, sample):
-    use_cmd = "python " + code_path + "Run_spades_final_MT_2_all_noec_deltemp.py" + " --num_threads " + str(num_threads) + " --num_threads_spades " + str(num_threads_spades) + " --chr_start " + str(chr_start) + " --chr_end " + str(chr_end) + " --out_dir " + Local_Assembly_dir + " --minicontig_dir " + Assembly_Contigs_dir +\
-    " --read_type "+read_type + " --sample " + sample + " --bam_file " + bam_file + " --sample_fastq " + sample_fastq
+def local_assembly_for_small_chunks( sample_fastq, chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type, sample):
+    use_cmd = "python " + code_path + "Run_spades_final_MT_2_all_noec_deltemp_fast.py" + " --num_threads " + str(num_threads) + " --num_threads_spades " + str(num_threads_spades) + " --chr_start " + str(chr_start) + " --chr_end " + str(chr_end) + " --out_dir " + Local_Assembly_dir + " --minicontig_dir " + Assembly_Contigs_dir +\
+    " --read_type "+read_type + " --sample " + sample +  " --sample_fastq " + sample_fastq
     Popen(use_cmd,shell=True).wait()
 
 
@@ -76,8 +76,8 @@ def main():
     if len(sys.argv) == 1:
         Popen("python " + "Aquila_step2.py -h",shell=True).wait()
     else:
-        bam_file = args.bam_file
-        sample_fastq = args.fastq_file
+        # bam_file = args.bam_file
+        # sample_fastq = args.fastq_file
         chr_start = args.chr_number
         chr_end = args.chr_number
         ref_file = args.reference
@@ -87,12 +87,12 @@ def main():
         read_type = args.read_type
         sample = args.sample_name
 
-
+        
         Assembly_Contigs_dir = args.out_dir + "/Assembly_Contigs_files/"
         phase_blocks_cut_highconf_dir = args.out_dir + "/phase_blocks_cut_highconf/"
         Local_Assembly_dir = args.out_dir + "/Local_Assembly_by_chunks/"
-
-        # local_assembly_for_small_chunks(bam_file,sample_fastq, chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type,sample)
+        sample_fastq = f"{args.out_dir}/chr{chr_start}_fastq/{sample}_chr{chr_start}.fq"
+        local_assembly_for_small_chunks(sample_fastq, chr_start,chr_end,num_threads,num_threads_spades,Local_Assembly_dir,Assembly_Contigs_dir,read_type,sample)
         Complete_contiguity(chr_start,chr_end,Assembly_Contigs_dir,phase_blocks_cut_highconf_dir,cut_threshold,ref_file)
     
 if __name__ == "__main__":

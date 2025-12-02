@@ -46,13 +46,16 @@ def align_microcontigs(chr_start,chr_end,ref_file,out_dir):
 
 
 def Concatenate_microcontigs_all(chr_start,chr_end,cut_threshold,out_dir,phase_cut_folder,ref_file):
-    pool = Pool(chr_end - chr_start + 1)
+    # pool = Pool(chr_end - chr_start + 1)
+    # for chr_num in range(chr_start,chr_end + 1):
+    #     pool.apply_async(Contig_start,(chr_num,cut_threshold,ref_file,out_dir,phase_cut_folder,"xin"))
+    # pool.close()
+    # while len(active_children()) > 1:
+    #     time.sleep(0.5)
+    # pool.join()
     for chr_num in range(chr_start,chr_end + 1):
-        pool.apply_async(Contig_start,(chr_num,cut_threshold,ref_file,out_dir,phase_cut_folder,"xin"))
-    pool.close()
-    while len(active_children()) > 1:
-        time.sleep(0.5)
-    pool.join()
+        Contig_start(chr_num,cut_threshold,ref_file,out_dir,phase_cut_folder,"xin")
+
 
 
 def Concatenate_wgs(chr_start,chr_end,out_dir):
@@ -71,7 +74,6 @@ if __name__ == "__main__":
     chr_start = args.chr_start
     chr_end = args.chr_end
     ref_file = args.ref_file
-    # ref_file = args.ref_file
     out_dir = args.out_dir
     cut_threshold = args.cut_threshold
     phase_cut_folder = args.phase_cut_folder

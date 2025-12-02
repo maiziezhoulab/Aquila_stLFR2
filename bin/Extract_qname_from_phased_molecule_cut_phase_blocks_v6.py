@@ -327,7 +327,37 @@ def clean_folder(output_dir):
 
 
 
+def Extract_qname_hp_dict(phased_h5_file,PS_flag_dict_cut_file,chr_num,mole_qname_dict_file,output_dir,logger):
 
+    process = psutil.Process(os.getpid())
+
+    mem0=process.memory_info().rss / 1024**2
+    phased_dict_mole_num = Extract_mole_num_from_phased_mole(phased_h5_file,PS_flag_dict_cut_file,chr_num)
+    mem1=process.memory_info().rss / 1024**2
+    logger.info(f"Estimated phased_dict_mole_num memory usage: {(mem1-mem0):.2f} MB")
+
+    mem0 = process.memory_info().rss / 1024**2
+    mole_qname_dict = pickle.load(open(mole_qname_dict_file,"rb"))
+    mem1 = process.memory_info().rss / 1024**2
+    logger.info(f"Estimated mole_qname_dict memory usage: {(mem1-mem0):.2f} MB")
+
+    phased_dict_qname_2 = {}
+    curr = 0
+    flag_in = 0
+    for key, mole_num_list in tqdm(phased_dict_mole_num.items(), desc = " extract qname - hp dict"):
+        curr += 1
+        for mole_num in mole_num_list:
+            qname_dict = mole_qname_dict[mole_num]
+            for qname in qname_dict:
+                flag_in = check_qname_in_PS(key,qname_dict[qname])
+                if flag_in == 1:
+                    phased_dict_qname_2[qname] = key
+    if not os.path.exists(output_dir):
+        os.system("mkdir -p " + output_dir)
+    outfile = output_dir + "/phased_dict_qname_2.p"
+    # save_pickle_file(phased_dict_qname_2, outfile)
+    with open(outfile,'wb') as fw:
+        pickle.dump(phased_dict_qname_2, fw)
 
 def Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,mole_qname_dict_file,qname_pos_dict_file,chr_fastq,max_mem, n_thread):
     import logging
@@ -339,30 +369,31 @@ def Extract_start(output_dir,chr_num,phased_h5_file,PS_flag_dict_cut_file,mole_q
     logger = logging.getLogger(" ")
 
     process = psutil.Process(os.getpid())
-    logger.info("0")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    phased_dict_mole_num = Extract_mole_num_from_phased_mole(phased_h5_file,PS_flag_dict_cut_file,chr_num)
-    logger.info("1")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    mole_qname_dict = pickle.load(open(mole_qname_dict_file,"rb"))
-    logger.info("2")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    qname_pos_dict = pickle.load(open(qname_pos_dict_file,"rb"))
-    logger.info("3")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
-    Extract_qname(phased_dict_mole_num,mole_qname_dict,qname_pos_dict,chr_fastq,chr_num,output_dir,)
-    logger.info("4")
-    logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
+    # logger.info("0")
+    # logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
+    # phased_dict_mole_num = Extract_mole_num_from_phased_mole(phased_h5_file,PS_flag_dict_cut_file,chr_num)
+    # logger.info("1")
+    # logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
+    # mole_qname_dict = pickle.load(open(mole_qname_dict_file,"rb"))
+    # logger.info("2")
+    # logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
+    # qname_pos_dict = pickle.load(open(qname_pos_dict_file,"rb"))
+    # logger.info("3")
+    # logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
+    # Extract_qname(phased_dict_mole_num,mole_qname_dict,qname_pos_dict,chr_fastq,chr_num,output_dir,)
+    # logger.info("4")
+    # logger.info(f"current memory usage: {process.memory_info().rss / 1024**2:.2f} MB")
     
 
     
-    logger.info(f"Before cleanup: {process.memory_info().rss / 1024**2:.2f} MB")
+    # logger.info(f"Before cleanup: {process.memory_info().rss / 1024**2:.2f} MB")
 
-    del phased_dict_mole_num, mole_qname_dict, qname_pos_dict
-    gc.collect()
+    # del phased_dict_mole_num, mole_qname_dict, qname_pos_dict
+    # gc.collect()
 
-    logger.info(f"After cleanup: {process.memory_info().rss / 1024**2:.2f} MB")
+    # logger.info(f"After cleanup: {process.memory_info().rss / 1024**2:.2f} MB")
 
+    Extract_qname_hp_dict(phased_h5_file,PS_flag_dict_cut_file,chr_num,mole_qname_dict_file,output_dir,logger)
     split_all_fq( chr_fastq,  output_dir, n_thread, max_mem)
     clean_folder(output_dir)
 
