@@ -1,0 +1,3 @@
+Aquila_stLFR_step1.py is default version, will write by chr fastq physically, but is faster
+
+Aquila_stLFR_step1_light.py is light weight version. full index, no big file written. but might be slower?

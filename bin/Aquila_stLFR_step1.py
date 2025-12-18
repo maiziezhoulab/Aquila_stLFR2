@@ -106,7 +106,7 @@ def Extract_reads_for_small_chunks_old(chr_start,chr_end,h5_dir,phase_blocks_cut
 
 def Extract_reads_for_one_chromosome(bam_file, input_dir,fastq_file,chr_num, num_threads, sample_name):
     out_dir = f"{input_dir}/chr{chr_num}_fastq/"
-    use_cmd = "python3 " + code_path + "BAM2FASTQ_By_Chromosome_byte.py" + \
+    use_cmd = "python3 " + code_path + "BAM2FASTQ_By_Chromosome.py" + \
         " --bam_file " + bam_file + \
         " --fastq_file " + fastq_file + \
         " --prefix " + sample_name + " --chromosome chr" + str(chr_num) + \
@@ -120,7 +120,7 @@ def Extract_reads_for_one_chromosome(bam_file, input_dir,fastq_file,chr_num, num
 
 def Extract_reads_for_small_chunks(input_dir,chr_num, num_threads,max_mem, sample_name):
     fastq_file_one_chr = f"{input_dir}/chr{chr_num}_fastq/{sample_name}_chr{chr_num}.fq"
-    use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v7.py" + \
+    use_cmd = "python3 " + code_path + "Extract_qname_from_phased_molecule_cut_phase_blocks_v6.py" + \
         " --indir " + input_dir + " --chr_fastq " + fastq_file_one_chr + \
         " --sample_name " + sample_name + " --chr_num " + str(chr_num) + " --n_thread " +  str(num_threads) +\
         " --max_mem "+str(max_mem)
